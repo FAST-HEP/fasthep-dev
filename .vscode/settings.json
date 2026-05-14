@@ -1,0 +1,26 @@
+{
+  "todo-tree.general.tags": [
+    "TODO",
+    "FIXME",
+    "NOTE",
+    "DESIGN",
+    "TECHDEBT",
+    "IBCA",
+    "PRE-ALPHA",
+    "POST-ALPHA",
+    "MIGRATION",
+    "SPLIT",
+    "LEGACY"
+  ],
+
+  "todo-tree.tree.showCountsInTree": true,
+  "todo-tree.highlights.enabled": true,
+  "todo-tree.filtering.includeHiddenFiles": false,
+  "todo-tree.general.exportPath": "{workspace}/.vscode/todo-tree-%Y%m%d-%H%M.json",
+
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "ruff.fixAll": true,
+  "ruff.organizeImports": true
+}
