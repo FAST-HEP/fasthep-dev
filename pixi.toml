@@ -1,0 +1,64 @@
+[workspace]
+name = "fasthep-dev"
+authors = ["FAST-HEP contributors"]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+version = "0.1.0"
+exclude-newer = "14d"
+
+[dependencies]
+python = ">=3.11"
+pyyaml = "*"
+
+[environments]
+tools = ["tools"]
+dev = ["dev"]
+
+[feature.tools.dependencies]
+python = ">=3.11"
+pyyaml = "*"
+
+[feature.dev.dependencies]
+python = ">=3.11"
+pytest = "*"
+
+[feature.dev.pypi-dependencies]
+fasthep-flow = { path = "fasthep-flow", editable = true }
+fasthep-carpenter = { path = "fasthep-carpenter", editable = true }
+fasthep-curator = { path = "fasthep-curator", editable = true }
+fasthep-render = { path = "fasthep-render", editable = true }
+fasthep-cli = { path = "fasthep-cli", editable = true }
+fasthep-toolbench = { path = "fasthep-toolbench", editable = true }
+fasthep = { path = "fasthep", editable = true }
+
+[tasks]
+status = "git submodule status --recursive"
+update-submodules = "git submodule update --remote --recursive"
+init-submodules = "git submodule update --init --recursive"
+repo-index = "python tools/repo_index.py"
+git-status = "python tools/git-status-summary.py"
+smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, fasthep_render, fasthep_cli, fasthep_toolbench, fasthep'"
+
+smoke-submodules = "git submodule status --recursive"
+ci = { depends-on = ["smoke-submodules", "repo-index"] }
+
+[tasks.clean-pycache]
+cmd = """
+find . -type d -name '__pycache__' -prune -exec rm -rf {} +
+"""
+
+[tasks.clean-build]
+cmd = """
+find . \\( -name build -o -name dist -o -name '.pytest_cache' -o -name '.ruff_cache' -o -name '.mypy_cache' \\) -prune -exec rm -rf {} +
+"""
+
+[tasks.clean-ai]
+cmd = """
+rm -rf .ai
+"""
+
+[tasks.clean]
+depends-on = [
+  "clean-pycache",
+  "clean-build",
+]
