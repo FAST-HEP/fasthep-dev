@@ -219,3 +219,7 @@ __marimo__/
 
 # local, generated AI index
 .ai/
+workspace/
+notes.md
+.hepflow
+.fasthep
