@@ -1,0 +1,27 @@
+[submodule "fasthep"]
+	path = fasthep
+	url = git@github.com:FAST-HEP/fasthep.git
+[submodule "fasthep-flow"]
+	path = fasthep-flow
+	url = git@github.com:FAST-HEP/fasthep-flow.git
+[submodule "fasthep-carpenter"]
+	path = fasthep-carpenter
+	url = git@github.com:FAST-HEP/fasthep-carpenter.git
+[submodule "fasthep-curator"]
+	path = fasthep-curator
+	url = git@github.com:FAST-HEP/fasthep-curator.git
+[submodule "fasthep-render"]
+	path = fasthep-render
+	url = git@github.com:FAST-HEP/fasthep-render.git
+[submodule "fasthep-cli"]
+	path = fasthep-cli
+	url = git@github.com:FAST-HEP/fasthep-cli.git
+[submodule "fasthep-toolbench"]
+	path = fasthep-toolbench
+	url = git@github.com:FAST-HEP/fasthep-toolbench.git
+[submodule "fast-hep.github.io"]
+	path = fast-hep.github.io
+	url = git@github.com:FAST-HEP/fast-hep.github.io.git
+[submodule "fasthep-workshop"]
+	path = fasthep-workshop
+	url = git@github.com:FAST-HEP/fasthep-workshop.git
