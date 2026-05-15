@@ -75,6 +75,21 @@ The CLI should call public APIs and helper packages. It should not import compil
 - Do not commit caches, build products, or large generated artifacts.
 - Do not modify legacy/reference directories unless explicitly asked.
 
+## Package-local vs workspace checks
+
+Package repositories should keep release-like dependency declarations.
+
+Do not replace package dependencies with `../local-path` editable dependencies in package-local `pixi.toml` files unless explicitly requested.
+
+For cross-package editable testing, use the `fasthep-dev` workspace instead:
+
+```bash
+pixi run --environment dev test-cli
+pixi run --environment dev smoke-imports
+pixi run --environment dev ci
+```
+when validating a package as an independently releasable project.
+
 ## Common commands
 
 Lightweight workspace tools:
@@ -97,6 +112,20 @@ Submodule maintenance:
 git submodule update --init --recursive
 git submodule update --remote --recursive
 ```
+
+## Workspace integration checks
+
+The `fasthep-dev` workspace installs FAST-HEP packages from local submodules as editable packages.
+
+Use workspace tasks when validating cross-package changes:
+
+```bash
+pixi run --environment dev smoke-imports
+pixi run --environment dev test-flow
+pixi run --environment dev test-cli
+pixi run --environment dev lint-all
+pixi run --environment dev typecheck-all
+pixi run --environment dev ci
 
 ## AI contribution expectations
 

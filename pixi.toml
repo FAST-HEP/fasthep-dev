@@ -41,7 +41,6 @@ git-status = "python tools/git-status-summary.py"
 smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, fasthep_render, fasthep_cli, fasthep_toolbench, fasthep, fasthep_workshop'"
 
 smoke-submodules = "git submodule status --recursive"
-ci = { depends-on = ["smoke-submodules", "repo-index"] }
 
 smoke-runtime = "fasthep run fasthep-workshop/examples/tutorial/runtime-smoke/author.yaml --outdir build/tutorial/runtime-smoke"
 smoke-zmumu = "fasthep run fasthep-workshop/examples/CMS/Zmumu/author.yaml --outdir build/CMS/Zmumu"
@@ -73,4 +72,147 @@ rm -rf .ai
 depends-on = [
   "clean-pycache",
   "clean-build",
+]
+
+# -----------------------------------------------------------------------------
+# fasthep-flow
+# -----------------------------------------------------------------------------
+
+[tasks.test-flow]
+cmd = "pytest fasthep-flow/tests"
+
+[tasks.lint-flow]
+cmd = "ruff check fasthep-flow/src fasthep-flow/tests"
+
+[tasks.typecheck-flow]
+cmd = "mypy fasthep-flow/src fasthep-flow/tests"
+
+
+# -----------------------------------------------------------------------------
+# fasthep-carpenter
+# -----------------------------------------------------------------------------
+
+[tasks.test-carpenter]
+cmd = "pytest fasthep-carpenter/tests"
+
+[tasks.lint-carpenter]
+cmd = "ruff check fasthep-carpenter/src fasthep-carpenter/tests"
+
+[tasks.typecheck-carpenter]
+cmd = "mypy fasthep-carpenter/src fasthep-carpenter/tests"
+
+
+# -----------------------------------------------------------------------------
+# fasthep-curator
+# -----------------------------------------------------------------------------
+
+[tasks.test-curator]
+cmd = "pytest fasthep-curator/tests"
+
+[tasks.lint-curator]
+cmd = "ruff check fasthep-curator/src fasthep-curator/tests"
+
+[tasks.typecheck-curator]
+cmd = "mypy fasthep-curator/src fasthep-curator/tests"
+
+
+# -----------------------------------------------------------------------------
+# fasthep-render
+# -----------------------------------------------------------------------------
+
+[tasks.test-render]
+cmd = "pytest fasthep-render/tests"
+
+[tasks.lint-render]
+cmd = "ruff check fasthep-render/src fasthep-render/tests"
+
+[tasks.typecheck-render]
+cmd = "mypy fasthep-render/src fasthep-render/tests"
+
+
+# -----------------------------------------------------------------------------
+# fasthep-cli
+# -----------------------------------------------------------------------------
+
+[tasks.test-cli]
+cmd = "pytest fasthep-cli/tests"
+
+[tasks.lint-cli]
+cmd = "ruff check fasthep-cli/src fasthep-cli/tests"
+
+[tasks.typecheck-cli]
+cmd = "mypy fasthep-cli/src fasthep-cli/tests"
+
+
+# -----------------------------------------------------------------------------
+# fasthep-toolbench
+# -----------------------------------------------------------------------------
+
+[tasks.test-toolbench]
+cmd = "pytest fasthep-toolbench/tests"
+
+[tasks.lint-toolbench]
+cmd = "ruff check fasthep-toolbench/src fasthep-toolbench/tests"
+
+[tasks.typecheck-toolbench]
+cmd = "mypy fasthep-toolbench/src fasthep-toolbench/tests"
+
+
+# -----------------------------------------------------------------------------
+# fasthep (meta package)
+# -----------------------------------------------------------------------------
+
+[tasks.test-fasthep]
+cmd = "pytest fasthep/tests"
+
+[tasks.lint-fasthep]
+cmd = "ruff check fasthep/src fasthep/tests"
+
+[tasks.typecheck-fasthep]
+cmd = "mypy fasthep/src fasthep/tests"
+
+
+# -----------------------------------------------------------------------------
+# aggregate tasks
+# -----------------------------------------------------------------------------
+
+[tasks.test-all]
+depends-on = [
+  "test-flow",
+  "test-carpenter",
+  "test-curator",
+  "test-render",
+  "test-cli",
+  "test-toolbench",
+  "test-fasthep",
+]
+
+[tasks.lint-all]
+depends-on = [
+  "lint-flow",
+  "lint-carpenter",
+  "lint-curator",
+  "lint-render",
+  "lint-cli",
+  "lint-toolbench",
+  "lint-fasthep",
+]
+
+[tasks.typecheck-all]
+depends-on = [
+  "typecheck-flow",
+  "typecheck-carpenter",
+  "typecheck-curator",
+  "typecheck-render",
+  "typecheck-cli",
+  "typecheck-toolbench",
+  "typecheck-fasthep",
+]
+
+[tasks.ci]
+depends-on = [
+  "smoke-imports",
+  "lint-all",
+  "typecheck-all",
+  "test-all",
 ]
