@@ -30,6 +30,7 @@ fasthep-render = { path = "fasthep-render", editable = true }
 fasthep-cli = { path = "fasthep-cli", editable = true }
 fasthep-toolbench = { path = "fasthep-toolbench", editable = true }
 fasthep = { path = "fasthep", editable = true }
+fasthep-workshop = { path = "fasthep-workshop", editable = true }
 
 [tasks]
 status = "git submodule status --recursive"
@@ -37,10 +38,21 @@ update-submodules = "git submodule update --remote --recursive"
 init-submodules = "git submodule update --init --recursive"
 repo-index = "python tools/repo_index.py"
 git-status = "python tools/git-status-summary.py"
-smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, fasthep_render, fasthep_cli, fasthep_toolbench, fasthep'"
+smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, fasthep_render, fasthep_cli, fasthep_toolbench, fasthep, fasthep_workshop'"
 
 smoke-submodules = "git submodule status --recursive"
 ci = { depends-on = ["smoke-submodules", "repo-index"] }
+
+smoke-runtime = "fasthep run fasthep-workshop/examples/tutorial/runtime-smoke/author.yaml --outdir build/tutorial/runtime-smoke"
+smoke-zmumu = "fasthep run fasthep-workshop/examples/CMS/Zmumu/author.yaml --outdir build/CMS/Zmumu"
+
+smoke-l1trigger = "fasthep run fasthep-workshop/examples/CMS/L1Trigger/author.yaml --outdir build/CMS/L1Trigger"
+
+smoke-workshop = { depends-on = [
+  "smoke-runtime",
+  "smoke-zmumu",
+  "smoke-l1trigger",
+] }
 
 [tasks.clean-pycache]
 cmd = """

@@ -80,6 +80,7 @@ environments:
       - pypi: fasthep-flow
       - pypi: fasthep-render
       - pypi: fasthep-toolbench
+      - pypi: fasthep-workshop
       - pypi: https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/04/5f/9ff93450ba96b09c7c2b3f81c94de31c89f92292f1380261bd7195bea4ea/contourpy-1.3.3-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/0b/2e/7eea398450457ecb54e18e9d10110993fa65561c4f3add5e8eccd2b9cd41/scipy-1.17.1-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
@@ -655,6 +656,15 @@ packages:
   - sphinx>=7.0 ; extra == 'docs'
   - pytest-cov>=3 ; extra == 'test'
   - pytest>=6 ; extra == 'test'
+  requires_python: '>=3.11'
+- pypi: fasthep-workshop
+  name: fasthep-workshop
+  requires_dist:
+  - fasthep-carpenter
+  - fasthep-curator
+  - fasthep-flow
+  - fasthep-render
+  - pytest ; extra == 'test'
   requires_python: '>=3.11'
 - pypi: https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl
   name: h11
