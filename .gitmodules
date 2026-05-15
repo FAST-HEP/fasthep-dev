@@ -25,3 +25,6 @@
 [submodule "fasthep-workshop"]
 	path = fasthep-workshop
 	url = git@github.com:FAST-HEP/fasthep-workshop.git
+[submodule "logos-etc"]
+	path = logos-etc
+	url = git@github.com:FAST-HEP/logos-etc.git
