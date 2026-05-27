@@ -35,6 +35,7 @@ Do not scan the whole workspace unless necessary.
 
 - `fasthep-cli` / import `fasthep_cli`
   - `fasthep` command-line interface; should remain a thin wrapper over public APIs
+  - If a CLI command needs more than a small adapter function, the implementation probably belongs outside `fasthep-cli`.
 
 - `fasthep-toolbench` / import `fasthep_toolbench`
   - shared display, download, package discovery, and lightweight UX helpers
@@ -50,6 +51,30 @@ Do not scan the whole workspace unless necessary.
 
 - `fasthep-dev`
   - integration workspace, submodule orchestration, release validation, shared tooling
+
+### CLI implementation boundary
+
+`fasthep-cli` must remain a thin command-line wrapper over public APIs provided by the owning packages.
+
+Do not implement workflow, compiler, runtime, registry, profile, or project-initialisation logic directly in `fasthep-cli`.
+
+CLI commands should generally:
+
+1. parse command-line options
+2. call a public API from the owning package
+3. format/display the result
+4. return an appropriate exit code
+
+For example:
+
+- `fasthep init` should delegate to `hepflow.api.init_project`
+- workflow compilation should delegate to `hepflow.api`
+- runtime execution should delegate to the owning flow/runtime API
+- package discovery or utility helpers should live in `fasthep-toolbench` where appropriate
+
+If a CLI change requires new behaviour, first add or update the public API in the owning package, then call that API from `fasthep-cli`.
+
+Avoid adding business logic to CLI modules beyond argument parsing, validation, and presentation.
 
 ## Dependency rules
 
