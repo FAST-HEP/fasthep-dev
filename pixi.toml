@@ -21,6 +21,8 @@ pyyaml = "*"
 [feature.dev.dependencies]
 python = ">=3.11"
 pytest = "*"
+ruff = "*"
+mypy = "*"
 
 [feature.dev.pypi-dependencies]
 fasthep-flow = { path = "fasthep-flow", editable = true }
@@ -42,7 +44,7 @@ smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, 
 
 smoke-submodules = "git submodule status --recursive"
 
-smoke-runtime = "fasthep run fasthep-workshop/examples/tutorial/runtime-smoke/author.yaml --outdir build/tutorial/runtime-smoke"
+smoke-runtime = "fasthep run fasthep-workshop/examples/testing/runtime-smoke/author.yaml --outdir build/testing/runtime-smoke"
 smoke-zmumu = "fasthep run fasthep-workshop/examples/CMS/Zmumu/author.yaml --outdir build/CMS/Zmumu"
 
 smoke-l1trigger = "fasthep run fasthep-workshop/examples/CMS/L1Trigger/author.yaml --outdir build/CMS/L1Trigger"
