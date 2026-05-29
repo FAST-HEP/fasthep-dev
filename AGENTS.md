@@ -1,6 +1,3 @@
-Use this as a first version:
-
-````md
 # FAST-HEP agent instructions
 
 This repository is the `fasthep-dev` integration workspace.
@@ -19,6 +16,26 @@ Before editing code:
 
 Do not scan the whole workspace unless necessary.
 
+## Workspace repository names
+
+The development workspace intentionally uses short local directory names.
+
+| Local path | Canonical repository/package |
+|---|---|
+| `flow` | `fasthep-flow` |
+| `carpenter` | `fasthep-carpenter` |
+| `render` | `fasthep-render` |
+| `curator` | `fasthep-curator` |
+| `cli` | `fasthep-cli` |
+| `toolbench` | `fasthep-toolbench` |
+| `workshop` | `fasthep-workshop` |
+| `main-docs` | `fast-hep.github.io` |
+| `fasthep` | meta package |
+| `legacy-hepflow` | legacy reference copy |
+
+Use canonical names when discussing packages and repositories.
+Use local names when referring to workspace paths.
+
 ## Package boundaries
 
 - `fasthep-flow` / import `hepflow`
@@ -28,7 +45,7 @@ Do not scan the whole workspace unless necessary.
   - HEP analysis transforms, ROOT/awkward sources and writers, histogram filling, cutflows
 
 - `fasthep-curator` / import `fasthep_curator`
-  - metadata, schemas, inspection, diagnostics, hooks, provenance
+  - metadata, schemas, inspection, diagnostics, provenance
 
 - `fasthep-render` / import `fasthep_render`
   - rendering sinks, plots, reports, styles
@@ -113,6 +130,7 @@ pixi run --environment dev test-cli
 pixi run --environment dev smoke-imports
 pixi run --environment dev ci
 ```
+
 when validating a package as an independently releasable project.
 
 ## Common commands
@@ -122,7 +140,7 @@ Lightweight workspace tools:
 ```bash
 pixi run --environment tools repo-index
 git submodule status --recursive
-````
+```
 
 Full editable ecosystem checks:
 
@@ -151,6 +169,7 @@ pixi run --environment dev test-cli
 pixi run --environment dev lint-all
 pixi run --environment dev typecheck-all
 pixi run --environment dev ci
+```
 
 ## AI contribution expectations
 

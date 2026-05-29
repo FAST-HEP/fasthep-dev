@@ -25,14 +25,14 @@ ruff = "*"
 mypy = "*"
 
 [feature.dev.pypi-dependencies]
-fasthep-flow = { path = "fasthep-flow", editable = true }
-fasthep-carpenter = { path = "fasthep-carpenter", editable = true }
-fasthep-curator = { path = "fasthep-curator", editable = true }
-fasthep-render = { path = "fasthep-render", editable = true }
-fasthep-cli = { path = "fasthep-cli", editable = true }
-fasthep-toolbench = { path = "fasthep-toolbench", editable = true }
+fasthep-flow = { path = "flow", editable = true }
+fasthep-carpenter = { path = "carpenter", editable = true }
+fasthep-curator = { path = "curator", editable = true }
+fasthep-render = { path = "render", editable = true }
+fasthep-cli = { path = "cli", editable = true }
+fasthep-toolbench = { path = "toolbench", editable = true }
 fasthep = { path = "fasthep", editable = true }
-fasthep-workshop = { path = "fasthep-workshop", editable = true }
+fasthep-workshop = { path = "workshop", editable = true }
 
 [tasks]
 status = "git submodule status --recursive"
@@ -44,10 +44,10 @@ smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, 
 
 smoke-submodules = "git submodule status --recursive"
 
-smoke-runtime = "fasthep run fasthep-workshop/examples/testing/runtime-smoke/author.yaml --outdir build/testing/runtime-smoke"
-smoke-zmumu = "fasthep run fasthep-workshop/examples/CMS/Zmumu/author.yaml --outdir build/CMS/Zmumu"
+smoke-runtime = "fasthep run workshop/examples/testing/runtime-smoke/author.yaml --outdir build/testing/runtime-smoke"
+smoke-zmumu = "fasthep run workshop/examples/CMS/Zmumu/author.yaml --outdir build/CMS/Zmumu"
 
-smoke-l1trigger = "fasthep run fasthep-workshop/examples/CMS/L1Trigger/author.yaml --outdir build/CMS/L1Trigger"
+smoke-l1trigger = "fasthep run workshop/examples/CMS/L1Trigger/author.yaml --outdir build/CMS/L1Trigger"
 
 smoke-workshop = { depends-on = [
   "smoke-runtime",
@@ -81,13 +81,13 @@ depends-on = [
 # -----------------------------------------------------------------------------
 
 [tasks.test-flow]
-cmd = "pytest fasthep-flow/tests"
+cmd = "pytest flow/tests"
 
 [tasks.lint-flow]
-cmd = "ruff check fasthep-flow/src fasthep-flow/tests"
+cmd = "ruff check flow/src flow/tests"
 
 [tasks.typecheck-flow]
-cmd = "mypy fasthep-flow/src fasthep-flow/tests"
+cmd = "mypy --config-file flow/mypy.ini flow/src flow/tests"
 
 
 # -----------------------------------------------------------------------------
@@ -95,13 +95,13 @@ cmd = "mypy fasthep-flow/src fasthep-flow/tests"
 # -----------------------------------------------------------------------------
 
 [tasks.test-carpenter]
-cmd = "pytest fasthep-carpenter/tests"
+cmd = "pytest carpenter/tests"
 
 [tasks.lint-carpenter]
-cmd = "ruff check fasthep-carpenter/src fasthep-carpenter/tests"
+cmd = "ruff check carpenter/src carpenter/tests"
 
 [tasks.typecheck-carpenter]
-cmd = "mypy fasthep-carpenter/src fasthep-carpenter/tests"
+cmd = "mypy --config-file carpenter/mypy.ini carpenter/src carpenter/tests"
 
 
 # -----------------------------------------------------------------------------
@@ -109,13 +109,13 @@ cmd = "mypy fasthep-carpenter/src fasthep-carpenter/tests"
 # -----------------------------------------------------------------------------
 
 [tasks.test-curator]
-cmd = "pytest fasthep-curator/tests"
+cmd = "pytest curator/tests"
 
 [tasks.lint-curator]
-cmd = "ruff check fasthep-curator/src fasthep-curator/tests"
+cmd = "ruff check curator/src curator/tests"
 
 [tasks.typecheck-curator]
-cmd = "mypy fasthep-curator/src fasthep-curator/tests"
+cmd = "mypy --config-file curator/mypy.ini curator/src curator/tests"
 
 
 # -----------------------------------------------------------------------------
@@ -123,13 +123,13 @@ cmd = "mypy fasthep-curator/src fasthep-curator/tests"
 # -----------------------------------------------------------------------------
 
 [tasks.test-render]
-cmd = "pytest fasthep-render/tests"
+cmd = "pytest render/tests"
 
 [tasks.lint-render]
-cmd = "ruff check fasthep-render/src fasthep-render/tests"
+cmd = "ruff check render/src render/tests"
 
 [tasks.typecheck-render]
-cmd = "mypy fasthep-render/src fasthep-render/tests"
+cmd = "mypy --config-file render/mypy.ini render/src render/tests"
 
 
 # -----------------------------------------------------------------------------
@@ -137,13 +137,13 @@ cmd = "mypy fasthep-render/src fasthep-render/tests"
 # -----------------------------------------------------------------------------
 
 [tasks.test-cli]
-cmd = "pytest fasthep-cli/tests"
+cmd = "pytest cli/tests"
 
 [tasks.lint-cli]
-cmd = "ruff check fasthep-cli/src fasthep-cli/tests"
+cmd = "ruff check cli/src cli/tests"
 
 [tasks.typecheck-cli]
-cmd = "mypy fasthep-cli/src fasthep-cli/tests"
+cmd = "mypy --config-file cli/mypy.ini cli/src cli/tests"
 
 
 # -----------------------------------------------------------------------------
@@ -151,13 +151,13 @@ cmd = "mypy fasthep-cli/src fasthep-cli/tests"
 # -----------------------------------------------------------------------------
 
 [tasks.test-toolbench]
-cmd = "pytest fasthep-toolbench/tests"
+cmd = "pytest toolbench/tests"
 
 [tasks.lint-toolbench]
-cmd = "ruff check fasthep-toolbench/src fasthep-toolbench/tests"
+cmd = "ruff check toolbench/src toolbench/tests"
 
 [tasks.typecheck-toolbench]
-cmd = "mypy fasthep-toolbench/src fasthep-toolbench/tests"
+cmd = "mypy --config-file toolbench/pyproject.toml toolbench/src toolbench/tests"
 
 
 # -----------------------------------------------------------------------------
@@ -171,7 +171,7 @@ cmd = "pytest fasthep/tests"
 cmd = "ruff check fasthep/src fasthep/tests"
 
 [tasks.typecheck-fasthep]
-cmd = "mypy fasthep/src fasthep/tests"
+cmd = "mypy --config-file fasthep/mypy.ini fasthep/src fasthep/tests"
 
 
 # -----------------------------------------------------------------------------

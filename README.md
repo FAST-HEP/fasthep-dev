@@ -1,4 +1,3 @@
-Replace it with:
 # fasthep-dev
 
 Development and integration workspace for the FAST-HEP ecosystem.
@@ -12,7 +11,7 @@ This workspace uses SSH Git submodule URLs by default.
 ```bash
 git clone --recurse-submodules git@github.com:FAST-HEP/fasthep-dev.git
 cd fasthep-dev
-````
+```
 
 If submodules are missing:
 
@@ -20,37 +19,22 @@ If submodules are missing:
 git submodule update --init --recursive
 ```
 
-## Packages
+## Repositories
 
-This workspace includes:
+| Local path | Canonical repository/package | Purpose |
+|---|---|---|
+| `fasthep` | `fasthep` | meta package and verified compatibility bundle |
+| `flow` | `fasthep-flow` | workflow compilation, planning, and orchestration |
+| `carpenter` | `fasthep-carpenter` | HEP analysis transforms and histogramming |
+| `curator` | `fasthep-curator` | dataset inspection, validation, and metadata |
+| `render` | `fasthep-render` | plotting, reports, and rendering utilities |
+| `cli` | `fasthep-cli` | unified command-line interface |
+| `toolbench` | `fasthep-toolbench` | shared utilities and user-facing helpers |
+| `workshop` | `fasthep-workshop` | examples, tutorials, and training material |
+| `main-docs` | `fast-hep.github.io` | main FAST-HEP documentation site |
+| `legacy-hepflow` | legacy hepflow reference | historical reference copy |
 
-* `fasthep`
-
-  * meta package and verified compatibility bundle
-* `fasthep-flow`
-
-  * workflow compilation, planning, and orchestration
-* `fasthep-carpenter`
-
-  * HEP analysis transforms and histogramming
-* `fasthep-curator`
-
-  * dataset inspection, validation, and metadata
-* `fasthep-render`
-
-  * plotting, reports, and rendering utilities
-* `fasthep-cli`
-
-  * unified command-line interface
-* `fasthep-toolbench`
-
-  * shared utilities and user-facing helpers
-* `fasthep-workshop`
-
-  * examples, tutorials, and training material
-* `fast-hep.github.io`
-
-  * main FAST-HEP documentation site
+Use canonical names when discussing packages and repositories. Use local names when referring to workspace paths.
 
 ## Common commands
 

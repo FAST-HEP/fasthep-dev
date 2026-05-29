@@ -11,22 +11,25 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_PACKAGES = (
-    "fasthep-flow",
-    "fasthep-carpenter",
-    "fasthep-curator",
-    "fasthep-render",
-    "fasthep-cli",
-    "fasthep-workshop",
-    "fasthep",
-)
+DEFAULT_REPOSITORIES = {
+    "flow": "fasthep-flow",
+    "carpenter": "fasthep-carpenter",
+    "curator": "fasthep-curator",
+    "render": "fasthep-render",
+    "cli": "fasthep-cli",
+    "toolbench": "fasthep-toolbench",
+    "workshop": "fasthep-workshop",
+    "fasthep": "fasthep",
+}
 
 PYTHON_PACKAGE_HINTS = {
-    "fasthep-flow": "hepflow",
-    "fasthep-carpenter": "fasthep_carpenter",
-    "fasthep-curator": "fasthep_curator",
-    "fasthep-render": "fasthep_render",
-    "fasthep-cli": "fasthep_cli",
+    "flow": "hepflow",
+    "carpenter": "fasthep_carpenter",
+    "curator": "fasthep_curator",
+    "render": "fasthep_render",
+    "cli": "fasthep_cli",
+    "toolbench": "fasthep_toolbench",
+    "workshop": "fasthep_workshop",
     "fasthep": "fasthep",
 }
 
@@ -61,8 +64,8 @@ def rel(path: Path, root: Path) -> str:
 
 def discover_packages(root: Path) -> list[Path]:
     packages: list[Path] = []
-    for name in DEFAULT_PACKAGES:
-        path = root / name
+    for local_path in DEFAULT_REPOSITORIES:
+        path = root / local_path
         if path.exists():
             packages.append(path)
 
@@ -205,7 +208,7 @@ def collect_registry_index(
 ) -> dict[str, dict[str, dict[str, Any]]]:
     index: dict[str, dict[str, dict[str, Any]]] = {}
     for package_root in packages:
-        package_name = package_root.name
+        package_name = repository_name(package_root)
         for path in sorted(package_root.rglob("profiles/*.yaml")):
             data = simple_yaml_load(path)
             registry_entries = extract_registry_entries(data)
@@ -300,15 +303,22 @@ def package_import_name(package_root: Path) -> str | None:
     return distribution.replace("-", "_")
 
 
+def repository_name(package_root: Path) -> str:
+    return DEFAULT_REPOSITORIES.get(package_root.name, package_root.name)
+
+
 def render_package_index(packages: list[Path], workspace_root: Path) -> str:
     lines = ["# Package index", ""]
-    lines.append("| Package | Import namespace | Has src | Has tests | Has profiles |")
-    lines.append("|---|---|---:|---:|---:|")
+    lines.append(
+        "| Workspace path | Repository | Import namespace | Has src | Has tests | Has profiles |"
+    )
+    lines.append("|---|---|---|---:|---:|---:|")
     for package_root in packages:
         import_name = package_import_name(package_root) or ""
         lines.append(
-            "| {pkg} | `{imp}` | {src} | {tests} | {profiles} |".format(
-                pkg=package_root.name,
+            "| `{path}` | `{repo}` | `{imp}` | {src} | {tests} | {profiles} |".format(
+                path=rel(package_root, workspace_root),
+                repo=repository_name(package_root),
                 imp=import_name,
                 src="yes" if (package_root / "src").exists() else "no",
                 tests="yes" if (package_root / "tests").exists() else "no",
