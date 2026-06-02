@@ -93,6 +93,43 @@ If a CLI change requires new behaviour, first add or update the public API in th
 
 Avoid adding business logic to CLI modules beyond argument parsing, validation, and presentation.
 
+## Public API discipline
+
+Public API modules should stay small, readable, and discoverable.
+
+For `hepflow.api`, the intended pattern is:
+
+- public orchestration functions live in `hepflow.api`
+- implementation details live in owning modules
+- `api.py` delegates to compiler, runtime, registry, profile, backend, or product modules
+
+Good:
+
+```python
+def make_plan_file(...):
+    return make_plan_from_normalized_file(...)
+```
+
+Bad:
+
+```python
+def make_plan_file(...):
+    ...
+    # large implementation
+```
+
+Private helpers in `api.py` should be rare.
+
+Before adding a private helper to `api.py`, ask:
+
+1. Does this belong in an existing module?
+2. Does this feature need a new focused module?
+3. Would another public function reuse this implementation?
+
+If a feature needs more than one private helper, move the implementation out of `api.py` and keep `api.py` as a thin facade.
+
+As a rule of thumb, private helpers whose names contain domain concepts such as `plan`, `compile`, `systematics`, `registry`, `runtime`, `product`, or `render` probably do not belong in `api.py`.
+
 ## Dependency rules
 
 `fasthep-flow` must remain lightweight and must not depend on:
