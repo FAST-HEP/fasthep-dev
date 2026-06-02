@@ -11,10 +11,10 @@ python = ">=3.11"
 pyyaml = "*"
 
 [environments]
-tools = ["tools"]
+scripts = ["scripts"]
 dev = ["dev"]
 
-[feature.tools.dependencies]
+[feature.scripts.dependencies]
 python = ">=3.11"
 pyyaml = "*"
 
@@ -38,9 +38,18 @@ fasthep-workshop = { path = "workshop", editable = true }
 status = "git submodule status --recursive"
 update-submodules = "git submodule update --remote --recursive"
 init-submodules = "git submodule update --init --recursive"
-repo-index = "python tools/repo_index.py"
-git-status = "python tools/git-status-summary.py"
+repo-index = "python scripts/dev/repo_index.py"
+git-status = "python scripts/dev/git-status-summary.py"
 smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, fasthep_render, fasthep_cli, fasthep_toolbench, fasthep, fasthep_workshop'"
+
+release-plan = "python scripts/release/print_release_plan.py releases.json"
+release-check = "python scripts/release/check_release.py releases.json"
+release-check-flow = "python scripts/release/check_release.py releases.json --package flow"
+release-update-versions = "python scripts/release/update_versions.py releases.json"
+release-update-versions-dry = "python scripts/release/update_versions.py releases.json --dry-run"
+release-tag = "python scripts/release/tag_packages.py releases.json"
+release-tag-dry = "python scripts/release/tag_packages.py releases.json --dry-run"
+release-tag-push = "python scripts/release/tag_packages.py releases.json --push"
 
 smoke-submodules = "git submodule status --recursive"
 
