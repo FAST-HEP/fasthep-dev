@@ -33,7 +33,7 @@ class PackageTag:
 
     @property
     def tag(self) -> str:
-        return f"{self.dist}-v{self.version}"
+        return self.version
 
     @property
     def message(self) -> str:

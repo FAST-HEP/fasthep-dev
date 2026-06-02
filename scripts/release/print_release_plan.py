@@ -36,7 +36,7 @@ def main() -> int:
         print(f"   path: {key}/")
         print(f"   distribution: {dist}")
         print(f"   version: {version}")
-        print(f"   tag: {dist}-v{version}")
+        print(f"   tag: {version}")
 
     print()
     print("Manual hard stops:")

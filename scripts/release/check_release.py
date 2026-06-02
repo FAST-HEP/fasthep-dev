@@ -32,7 +32,7 @@ class PackageCheck:
 
     @property
     def tag(self) -> str:
-        return f"{self.dist}-v{self.version}"
+        return self.version
 
 
 def main() -> int:
