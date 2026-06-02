@@ -68,3 +68,58 @@ Package-specific development still happens inside the individual package reposit
 ## Notes
 
 Generated indexes and local build artifacts should not be committed unless explicitly intended.
+
+## Release procedure
+
+FAST-HEP releases are coordinated from this development workspace.
+
+Release versions are defined in `releases.json`
+
+Start by reviewing the planned release:
+
+```bash
+pixi run release-plan
+```
+
+Check that all package repositories are clean and ready:
+
+```bash
+pixi run release-check
+```
+
+Update package versions and dependency pins:
+
+```bash
+pixi run release-update-versions-dry
+pixi run release-update-versions
+```
+
+Run the release checks again:
+
+```bash
+pixi run release-check
+```
+
+Tag all non-meta packages:
+
+```bash
+pixi run release-tag
+pixi run release-tag-push
+```
+
+At this point, stop.
+
+Push `workshop` first and wait until CI and Read the Docs are green.
+
+Only after the workshop release is confirmed, tag the meta package:
+
+```bash
+python scripts/release/tag_packages.py releases.json --package fasthep --push
+```
+
+The `fasthep` meta package is tagged last because it depends on the released versions of the rest of the ecosystem.
+
+During alpha, normal PyPI-based CI may be marked as non-blocking. The temporary alpha CI workflows install FAST-HEP dependencies from Git and should be treated as the relevant integration signal.
+
+```
+```
