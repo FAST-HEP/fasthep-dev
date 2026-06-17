@@ -235,3 +235,30 @@ Use this routing rule:
 * generic display/download helpers → `fasthep-toolbench`
 * examples/templates → `fasthep-workshop`
 * cross-package integration → `fasthep-dev`
+
+## fasthep-workshop conventions
+User-facing documentation must assume:
+
+1. git clone fasthep-workshop
+2. cd fasthep-workshop
+3. pixi install
+
+Do not assume:
+- FAST-HEP development workspace
+- sibling repositories
+- editable installs
+- local package checkouts
+
+Developer instructions belong in contributor documentation, not tutorials.
+
+- Repository root is the canonical working directory.
+- All documentation, tutorials, examples, and READMEs must assume commands are executed from the repository root unless explicitly stated otherwise.
+- Do not assume the FAST-HEP development meta-repository layout.
+- Do not prepend "workshop/" or other parent-directory prefixes when referring to files inside this repository.
+- Paths in documentation, tutorials, examples, tests, and READMEs should be relative to the repository root.
+
+Correct:
+    tutorials/01-read-data/root-files/author.yaml
+
+Incorrect:
+    workshop/tutorials/01-read-data/root-files/author.yaml
