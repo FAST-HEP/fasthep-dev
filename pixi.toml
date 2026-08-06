@@ -4,11 +4,12 @@ authors = ["FAST-HEP contributors"]
 channels = ["conda-forge"]
 platforms = ["linux-64"]
 version = "0.1.0"
-exclude-newer = "14d"
 
 [dependencies]
 python = ">=3.11"
 pyyaml = "*"
+packaging = "*"
+hugo = ">=0.164.0,<0.165"
 
 [environments]
 scripts = ["scripts"]
@@ -23,9 +24,12 @@ python = ">=3.11"
 pytest = "*"
 ruff = "*"
 mypy = "*"
+cupy = "*"
+cuda-version = "12.6.*"
+
 
 [feature.dev.pypi-dependencies]
-fasthep-flow = { path = "flow", editable = true }
+fasthep-flow = { path = "flow", editable = true, extras = ["distributed"] }
 fasthep-carpenter = { path = "carpenter", editable = true }
 fasthep-curator = { path = "curator", editable = true }
 fasthep-render = { path = "render", editable = true }
@@ -33,14 +37,16 @@ fasthep-cli = { path = "cli", editable = true }
 fasthep-toolbench = { path = "toolbench", editable = true }
 fasthep = { path = "fasthep", editable = true }
 fasthep-workshop = { path = "workshop", editable = true }
+cernopendata-client = {extras = ["pycurl", "xrootd"]}
+uproot-browser = "*"
+fsspec-xrootd = "*"
 
-[tasks]
+[feature.scripts.tasks]
 status = "git submodule status --recursive"
 update-submodules = "git submodule update --remote --recursive"
 init-submodules = "git submodule update --init --recursive"
 repo-index = "python scripts/dev/repo_index.py"
 git-status = "python scripts/dev/git-status-summary.py"
-smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, fasthep_render, fasthep_cli, fasthep_toolbench, fasthep, fasthep_workshop'"
 
 release-plan = "python scripts/release/print_release_plan.py releases.json"
 release-check = "python scripts/release/check_release.py releases.json"
@@ -53,6 +59,13 @@ release-tag-push = "python scripts/release/tag_packages.py releases.json --push"
 
 smoke-submodules = "git submodule status --recursive"
 
+clean-pycache = "find . -type d -name '__pycache__' -prune -exec rm -rf {} +"
+clean-build = "find . \\( -name build -o -name dist -o -name '.pytest_cache' -o -name '.ruff_cache' -o -name '.mypy_cache' \\) -prune -exec rm -rf {} +"
+clean-ai = "rm -rf .ai"
+clean = { depends-on = ["clean-pycache", "clean-build"] }
+
+[feature.dev.tasks]
+smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, fasthep_render, fasthep_cli, fasthep_toolbench, fasthep, fasthep_workshop'"
 smoke-runtime = "fasthep run workshop/examples/testing/runtime-smoke/author.yaml --outdir build/testing/runtime-smoke"
 smoke-zmumu = "fasthep run workshop/examples/CMS/Zmumu/author.yaml --outdir build/CMS/Zmumu"
 
@@ -64,131 +77,61 @@ smoke-workshop = { depends-on = [
   "smoke-l1trigger",
 ] }
 
-[tasks.clean-pycache]
-cmd = """
-find . -type d -name '__pycache__' -prune -exec rm -rf {} +
-"""
-
-[tasks.clean-build]
-cmd = """
-find . \\( -name build -o -name dist -o -name '.pytest_cache' -o -name '.ruff_cache' -o -name '.mypy_cache' \\) -prune -exec rm -rf {} +
-"""
-
-[tasks.clean-ai]
-cmd = """
-rm -rf .ai
-"""
-
-[tasks.clean]
-depends-on = [
-  "clean-pycache",
-  "clean-build",
-]
-
 # -----------------------------------------------------------------------------
 # fasthep-flow
 # -----------------------------------------------------------------------------
 
-[tasks.test-flow]
-cmd = "pytest flow/tests"
-
-[tasks.lint-flow]
-cmd = "ruff check flow/src flow/tests"
-
-[tasks.typecheck-flow]
-cmd = "mypy --config-file flow/mypy.ini flow/src flow/tests"
-
+test-flow = "pytest flow/tests"
+lint-flow = "ruff check flow/src flow/tests"
+typecheck-flow = "mypy --config-file flow/mypy.ini flow/src flow/tests"
 
 # -----------------------------------------------------------------------------
 # fasthep-carpenter
 # -----------------------------------------------------------------------------
 
-[tasks.test-carpenter]
-cmd = "pytest carpenter/tests"
-
-[tasks.lint-carpenter]
-cmd = "ruff check carpenter/src carpenter/tests"
-
-[tasks.typecheck-carpenter]
-cmd = "mypy --config-file carpenter/mypy.ini carpenter/src carpenter/tests"
-
+test-carpenter = "pytest carpenter/tests"
+lint-carpenter = "ruff check carpenter/src carpenter/tests"
+typecheck-carpenter = "mypy --config-file carpenter/mypy.ini carpenter/src carpenter/tests"
 
 # -----------------------------------------------------------------------------
 # fasthep-curator
 # -----------------------------------------------------------------------------
-
-[tasks.test-curator]
-cmd = "pytest curator/tests"
-
-[tasks.lint-curator]
-cmd = "ruff check curator/src curator/tests"
-
-[tasks.typecheck-curator]
-cmd = "mypy --config-file curator/mypy.ini curator/src curator/tests"
-
+test-curator = "pytest curator/tests"
+lint-curator = "ruff check curator/src curator/tests"
+typecheck-curator = "mypy --config-file curator/mypy.ini curator/src curator/tests"
 
 # -----------------------------------------------------------------------------
 # fasthep-render
 # -----------------------------------------------------------------------------
-
-[tasks.test-render]
-cmd = "pytest render/tests"
-
-[tasks.lint-render]
-cmd = "ruff check render/src render/tests"
-
-[tasks.typecheck-render]
-cmd = "mypy --config-file render/mypy.ini render/src render/tests"
-
+test-render = "pytest render/tests"
+lint-render = "ruff check render/src render/tests"
+typecheck-render = "mypy --config-file render/mypy.ini render/src render/tests"
 
 # -----------------------------------------------------------------------------
 # fasthep-cli
 # -----------------------------------------------------------------------------
-
-[tasks.test-cli]
-cmd = "pytest cli/tests"
-
-[tasks.lint-cli]
-cmd = "ruff check cli/src cli/tests"
-
-[tasks.typecheck-cli]
-cmd = "mypy --config-file cli/mypy.ini cli/src cli/tests"
-
+test-cli = "pytest cli/tests"
+lint-cli = "ruff check cli/src cli/tests"
+typecheck-cli = "mypy --config-file cli/mypy.ini cli/src cli/tests"
 
 # -----------------------------------------------------------------------------
 # fasthep-toolbench
 # -----------------------------------------------------------------------------
-
-[tasks.test-toolbench]
-cmd = "pytest toolbench/tests"
-
-[tasks.lint-toolbench]
-cmd = "ruff check toolbench/src toolbench/tests"
-
-[tasks.typecheck-toolbench]
-cmd = "mypy --config-file toolbench/pyproject.toml toolbench/src toolbench/tests"
-
+test-toolbench = "pytest toolbench/tests"
+lint-toolbench = "ruff check toolbench/src toolbench/tests"
+typecheck-toolbench = "mypy --config-file toolbench/pyproject.toml toolbench/src toolbench/tests"
 
 # -----------------------------------------------------------------------------
 # fasthep (meta package)
 # -----------------------------------------------------------------------------
-
-[tasks.test-fasthep]
-cmd = "pytest fasthep/tests"
-
-[tasks.lint-fasthep]
-cmd = "ruff check fasthep/src fasthep/tests"
-
-[tasks.typecheck-fasthep]
-cmd = "mypy --config-file fasthep/mypy.ini fasthep/src fasthep/tests"
-
+test-fasthep = "pytest fasthep/tests"
+lint-fasthep = "ruff check fasthep/src fasthep/tests"
+typecheck-fasthep = "mypy --config-file fasthep/mypy.ini fasthep/src fasthep/tests"
 
 # -----------------------------------------------------------------------------
 # aggregate tasks
 # -----------------------------------------------------------------------------
-
-[tasks.test-all]
-depends-on = [
+test-all = { depends-on = [
   "test-flow",
   "test-carpenter",
   "test-curator",
@@ -196,10 +139,9 @@ depends-on = [
   "test-cli",
   "test-toolbench",
   "test-fasthep",
-]
+] }
 
-[tasks.lint-all]
-depends-on = [
+lint-all = { depends-on = [
   "lint-flow",
   "lint-carpenter",
   "lint-curator",
@@ -207,10 +149,9 @@ depends-on = [
   "lint-cli",
   "lint-toolbench",
   "lint-fasthep",
-]
+] }
 
-[tasks.typecheck-all]
-depends-on = [
+typecheck-all = { depends-on = [
   "typecheck-flow",
   "typecheck-carpenter",
   "typecheck-curator",
@@ -218,12 +159,6 @@ depends-on = [
   "typecheck-cli",
   "typecheck-toolbench",
   "typecheck-fasthep",
-]
+] }
 
-[tasks.ci]
-depends-on = [
-  "smoke-imports",
-  "lint-all",
-  "typecheck-all",
-  "test-all",
-]
+ci = { depends-on = ["smoke-imports", "lint-all", "typecheck-all", "test-all"] }
