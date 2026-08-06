@@ -262,3 +262,117 @@ Correct:
 
 Incorrect:
     workshop/tutorials/01-read-data/root-files/author.yaml
+
+## Prefer established upstream functionality
+
+Before implementing numerical, histogram, plotting, vector, particle-data, or
+array-manipulation helpers, check whether the functionality already exists in
+the project’s upstream libraries.
+
+Prefer, in roughly this order:
+
+1. An existing FAST-HEP abstraction.
+2. A public API from an existing dependency.
+3. A well-maintained Scikit-HEP package.
+4. A small local implementation only when no suitable upstream API exists.
+
+Do not copy helpers from legacy analysis repositories without first checking
+the upstream-library index in:
+
+`docs/upstream-libraries.md`
+
+When using upstream functionality:
+
+- use public APIs rather than internal attributes
+- preserve the upstream object abstraction
+- avoid converting to NumPy merely to reimplement an available operation
+- add a focused test demonstrating the expected upstream behaviour
+- document why a local implementation is needed when upstream functionality
+  was considered and rejected
+
+
+## Keep author workflows concise
+
+Author YAML should describe analysis intent, not repeat information that can be
+derived by the operation spec.
+
+Before adding parameters to an author-facing operation, ask whether they can be
+derived from existing parameters through `requires`, `provides`, defaults, or
+normalisation.
+
+Prefer:
+
+```yaml
+params:
+  collection: Muon
+  output: selected_loose_Muon
+  selection:
+    - pt >= 5
+    - abs(eta) <= 2.4
+  keep:
+    - pt
+    - eta
+    - phi
+```
+
+over:
+
+```yaml
+params:
+  input_fields:
+    - Muon_pt
+    - Muon_eta
+    - Muon_phi
+  output_fields:
+    - selected_loose_Muon_pt
+    - selected_loose_Muon_eta
+    - selected_loose_Muon_phi
+```
+
+Operation specs should derive:
+
+* required fields from collection references, expressions, retained fields,
+  sorting fields, and other operation parameters
+* provided fields from output prefixes, retained fields, and naming conventions
+* default values for common cases
+* generated count or diagnostic fields where their names are deterministic
+
+Use the existing spec mechanisms before extending core Flow syntax or adding
+redundant author parameters.
+
+Good author-facing parameters describe concepts such as:
+
+* collection
+* output
+* selection
+* keep
+* variations
+* resource
+* sort
+
+Avoid exposing:
+
+* fully expanded required branch lists
+* fully expanded output field lists
+* duplicate prefixes and derived names
+* runtime-only implementation details
+* parameters that repeat information already available elsewhere in the same
+  operation
+
+The normalised plan and compiled graph should remain explicit and inspectable,
+even when author YAML is compact.
+
+When reviewing a new operation, treat excessive author verbosity as an API
+design issue, not merely a documentation issue.
+
+
+### New operation review checklist
+
+- Can `requires` be derived from params?
+- Can `provides` be derived from params?
+- Are output names deterministic?
+- Is the user repeating collection prefixes?
+- Is configuration describing intent or implementation?
+- Can defaults remove common boilerplate?
+- Does the compiled representation remain explicit?
+
