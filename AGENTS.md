@@ -208,6 +208,15 @@ pixi run --environment dev typecheck-all
 pixi run --environment dev ci
 ```
 
+## Test placement
+
+Tests for `src/hepflow/<subsystem>/...` should normally live under
+`tests/<subsystem>/...`.
+
+Tests that intentionally span multiple subsystems may remain at the test root.
+
+Do not force one test file per source file; group by subsystem and behaviour.
+
 ## AI contribution expectations
 
 AI-assisted changes are welcome, but they must be reviewable.
@@ -375,4 +384,3 @@ design issue, not merely a documentation issue.
 - Is configuration describing intent or implementation?
 - Can defaults remove common boilerplate?
 - Does the compiled representation remain explicit?
-
