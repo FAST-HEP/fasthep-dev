@@ -21,7 +21,7 @@ If you are changing...
 
 ## Workflow engine
 
-- author.yaml parsing/lowering → `fasthep-flow` in `flow/`
+- workflow.yaml parsing/lowering → `fasthep-flow` in `flow/`
 - workflow IR/plans → `fasthep-flow` in `flow/`
 - runtime orchestration/backends → `fasthep-flow` in `flow/`
 - registries/spec loading → `fasthep-flow` in `flow/`

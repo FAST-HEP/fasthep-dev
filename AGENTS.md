@@ -258,10 +258,10 @@ Developer instructions belong in contributor documentation, not tutorials.
 - Paths in documentation, tutorials, examples, tests, and READMEs should be relative to the repository root.
 
 Correct:
-    tutorials/01-read-data/root-files/author.yaml
+    tutorials/01-read-data/root-files/workflow.yaml
 
 Incorrect:
-    workshop/tutorials/01-read-data/root-files/author.yaml
+    workshop/tutorials/01-read-data/root-files/workflow.yaml
 
 ## Prefer established upstream functionality
 
@@ -291,7 +291,7 @@ When using upstream functionality:
   was considered and rejected
 
 
-## Keep author workflows concise
+## Keep workflows concise
 
 Author YAML should describe analysis intent, not repeat information that can be
 derived by the operation spec.
@@ -360,7 +360,7 @@ Avoid exposing:
   operation
 
 The normalised plan and compiled graph should remain explicit and inspectable,
-even when author YAML is compact.
+even when workflow YAML is compact.
 
 When reviewing a new operation, treat excessive author verbosity as an API
 design issue, not merely a documentation issue.

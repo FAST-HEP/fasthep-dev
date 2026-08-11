@@ -17,7 +17,7 @@ The workspace uses short local directory names while preserving canonical packag
 
 If you are changing...
 
-- author.yaml parsing/lowering → `fasthep-flow` in `flow/`
+- workflow.yaml parsing/lowering → `fasthep-flow` in `flow/`
 - required data inference → `fasthep-flow` in `flow/` plus component spec in the owning package
 - ROOT reading/writing → `fasthep-carpenter` in `carpenter/`
 - schema snapshots/errors/warnings → `fasthep-curator` in `curator/`

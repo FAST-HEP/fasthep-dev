@@ -66,10 +66,10 @@ clean = { depends-on = ["clean-pycache", "clean-build"] }
 
 [feature.dev.tasks]
 smoke-imports = "python -c 'import hepflow, fasthep_carpenter, fasthep_curator, fasthep_render, fasthep_cli, fasthep_toolbench, fasthep, fasthep_workshop'"
-smoke-runtime = "fasthep run workshop/examples/testing/runtime-smoke/author.yaml --outdir build/testing/runtime-smoke"
-smoke-zmumu = "fasthep run workshop/examples/CMS/Zmumu/author.yaml --outdir build/CMS/Zmumu"
+smoke-runtime = "fasthep run workshop/examples/testing/runtime-smoke/workflow.yaml --outdir build/testing/runtime-smoke"
+smoke-zmumu = "fasthep run workshop/examples/CMS/Zmumu/workflow.yaml --outdir build/CMS/Zmumu"
 
-smoke-l1trigger = "fasthep run workshop/examples/CMS/L1Trigger/author.yaml --outdir build/CMS/L1Trigger"
+smoke-l1trigger = "fasthep run workshop/examples/CMS/L1Trigger/workflow.yaml --outdir build/CMS/L1Trigger"
 
 smoke-workshop = { depends-on = [
   "smoke-runtime",
