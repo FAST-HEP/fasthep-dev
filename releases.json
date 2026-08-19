@@ -1,14 +1,14 @@
 {
-  "release": "2026.06.1",
+  "release": "2026.08.1",
   "packages": {
-    "flow": "2026.06.1",
-    "carpenter": "2026.06.1",
-    "curator": "2026.06.1",
-    "render": "2026.06.1",
-    "cli": "2026.06.1",
-    "toolbench": "2026.06.1",
-    "workshop": "2026.06.1",
-    "fasthep": "2026.06.1"
+    "flow": "2026.08.1",
+    "carpenter": "2026.08.1",
+    "curator": "2026.08.1",
+    "render": "2026.08.1",
+    "cli": "2026.08.1",
+    "toolbench": "2026.08.1",
+    "workshop": "2026.08.1",
+    "fasthep": "2026.08.1"
   },
   "order": [
     "flow",
