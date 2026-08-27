@@ -18,6 +18,7 @@ dev = ["dev"]
 [feature.scripts.dependencies]
 python = ">=3.11"
 pyyaml = "*"
+complexipy = "*"
 
 [feature.dev.dependencies]
 python = ">=3.11"
@@ -40,6 +41,7 @@ fasthep-workshop = { path = "workshop", editable = true }
 cernopendata-client = {extras = ["pycurl", "xrootd"]}
 uproot-browser = "*"
 fsspec-xrootd = "*"
+htcondor = "*"
 
 [feature.scripts.tasks]
 status = "git submodule status --recursive"
