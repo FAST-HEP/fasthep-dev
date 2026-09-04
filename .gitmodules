@@ -28,3 +28,6 @@
 [submodule "logos-etc"]
 	path = logos-etc
 	url = git@github.com:FAST-HEP/logos-etc.git
+[submodule "distributed"]
+	path = distributed
+	url = git@github.com:FAST-HEP/fasthep-distributed.git

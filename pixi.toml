@@ -52,6 +52,7 @@ types-PyYAML = "*"
 [feature.web.pypi-dependencies]
 requests = "*"
 flask = "*"
+python-dotenv = "*"
 
 [feature.web.tasks]
 # `pixi run dashboard` starts the dashboard on http://127.0.0.1:5000
