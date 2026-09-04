@@ -22,5 +22,6 @@
     "editor.defaultFormatter": "charliermarsh.ruff"
   },
   "ruff.fixAll": true,
-  "ruff.organizeImports": true
+  "ruff.organizeImports": true,
+  "python-envs.defaultEnvManager": "ms-python.python:system"
 }
