@@ -44,10 +44,11 @@ fasthep-toolbench = { path = "toolbench", editable = true }
 fasthep = { path = "fasthep", editable = true }
 fasthep-workshop = { path = "workshop", editable = true }
 cernopendata-client = {extras = ["pycurl", "xrootd"]}
-uproot-browser = "*"
+uproot-browser = {extras = ["image"]}
 fsspec-xrootd = "*"
 htcondor = "*"
 types-PyYAML = "*"
+scikit-hep-testdata = "*"
 
 [feature.web.pypi-dependencies]
 requests = "*"
