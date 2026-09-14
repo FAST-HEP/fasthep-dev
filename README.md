@@ -32,7 +32,6 @@ git submodule update --init --recursive
 | `toolbench` | `fasthep-toolbench` | shared utilities and user-facing helpers |
 | `workshop` | `fasthep-workshop` | examples, tutorials, and training material |
 | `main-docs` | `fast-hep.github.io` | main FAST-HEP documentation site |
-| `legacy-hepflow` | legacy hepflow reference | historical reference copy |
 
 Use canonical names when discussing packages and repositories. Use local names when referring to workspace paths.
 
@@ -47,7 +46,7 @@ Once Pixi tooling is configured:
 
 ```bash
 pixi install
-pixi run --environment tools repo-index
+pixi run --environment scripts repo-index
 pixi run --environment dev smoke-imports
 pixi run --environment dev ci
 ```
