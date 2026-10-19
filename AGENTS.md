@@ -109,6 +109,30 @@ For stacked PRs:
 - include `Depends on: #<PR>` in the child PR description;
 - report the full stack order.
 
+## Agent Task and Roadmap Output
+
+Skills that produce tasks, roadmaps, or structured plans (such as `grilling`,
+`mattpocock-skills:grilling`, or similar brainstorming and planning skills)
+must write their output under `tasks/` in this workspace.
+
+Directory naming convention:
+
+```
+tasks/<YYYY-MM-DD>-<short-slug>/
+```
+
+- `YYYY-MM-DD` is the ISO 8601 creation date (today's date when the task is
+  first created).
+- `<short-slug>` is a brief lowercase hyphenated label describing the task or
+  session (e.g. `grill-carpenter-api`, `roadmap-v2`, `hinv-migration-plan`).
+
+Each directory should contain at least one Markdown file summarising the
+output. Additional files (checklists, diagrams, notes) may be added alongside.
+
+Do not place task output directly in the workspace root or in `reports/`.
+`reports/` is reserved for durable investigation results; `tasks/` is for
+agent-generated planning and roadmap artefacts.
+
 ## Release And Scripts
 
 Workspace scripts are catalogued in `docs/scripts.md`. Do not run destructive,
