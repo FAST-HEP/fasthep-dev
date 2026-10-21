@@ -80,9 +80,26 @@ release-tag-push = "python scripts/release/tag_packages.py releases.json --push"
 smoke-submodules = "git submodule status --recursive"
 
 clean-pycache = "find . -type d -name '__pycache__' -prune -exec rm -rf {} +"
-clean-build = "find . \\( -name build -o -name dist -o -name '.pytest_cache' -o -name '.ruff_cache' -o -name '.mypy_cache' \\) -prune -exec rm -rf {} +"
+# Regenerable caches and distributions only. build/ is handled by clean-build below.
+clean-caches = "find . \\( -name dist -o -name '.pytest_cache' -o -name '.ruff_cache' -o -name '.mypy_cache' \\) -prune -exec rm -rf {} +"
+# build/ folders hold outputs that exist nowhere else (they are gitignored): list by default;
+# folders with a clean.keep file (or below one) and folders with tracked files are protected;
+# hinv/ (CMS analysis integration) is not scanned. Deleting is a human gate (typed confirmation
+# on a terminal, no way to skip it):
+#   pixi run --environment scripts clean-build-execute --older-than 14
+clean-build = "python scripts/dev/clean_build.py"
+clean-build-execute = "python scripts/dev/clean_build.py --execute"
 clean-ai = "rm -rf .ai"
-clean = { depends-on = ["clean-pycache", "clean-build"] }
+clean = { depends-on = ["clean-pycache", "clean-caches"] }
+
+# Mirror open issues of the FAST-HEP roadmap project (GitHub) into tasks/issues/ (read-only remote).
+tasks-sync = "python scripts/dev/tasks_sync.py"
+tasks-sync-dry = "python scripts/dev/tasks_sync.py --dry-run"
+
+# Push the FAST-HEP branches listed in tasks/push-manifest.yaml. The default lists what would be
+# pushed; -execute pushes after a typed confirmation on a terminal (a human gate, no way to skip).
+push-branches = "python scripts/dev/push_branches.py"
+push-branches-execute = "python scripts/dev/push_branches.py --execute"
 
 [feature.dev.tasks]
 smoke-imports = "python -c 'import hepflow, fasthep_distributed, fasthep_carpenter, fasthep_curator, fasthep_render, fasthep_cli, fasthep_toolbench, fasthep, fasthep_workshop'"
