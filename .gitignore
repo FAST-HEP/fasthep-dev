@@ -223,3 +223,6 @@ workspace/
 notes.md
 .hepflow
 .fasthep
+
+tasks/
+reports/
