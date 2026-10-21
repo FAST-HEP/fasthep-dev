@@ -10,6 +10,7 @@ python = ">=3.11"
 pyyaml = "*"
 packaging = "*"
 hugo = ">=0.164.0,<0.165"
+glab = ">=1.118.0,<2"
 
 [environments]
 scripts = ["scripts"]
@@ -44,7 +45,7 @@ fasthep-toolbench = { path = "toolbench", editable = true }
 fasthep = { path = "fasthep", editable = true }
 fasthep-workshop = { path = "workshop", editable = true }
 cernopendata-client = {extras = ["pycurl", "xrootd"]}
-uproot-browser = {extras = ["image"]}
+uproot-browser = {version = ">=0.10.1", extras = ["image"]}
 fsspec-xrootd = "*"
 htcondor = "*"
 types-PyYAML = "*"
