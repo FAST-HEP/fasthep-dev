@@ -63,8 +63,12 @@ local filesystem references.
 - **Human gates:** every destructive or external-write action (deleting build output or
   generated mirrors, pushing branches, removing worktrees) needs a typed confirmation on a
   terminal, is refused without one, and has no flag that skips it. Agents run the dry run, never
-  the executing variant (`clean-build-execute`, `push-branches-execute`, `--prune`). PRs are opened
-  after the user has pushed. Every HTCondor submit needs explicit approval.
+  the executing variant (`clean-build-execute`, `push-branches-execute`, `--prune`). Every
+  HTCondor submit needs explicit approval.
+- **Review gates:** two human gates, in this order. (1) The push: the user reviews the diff
+  locally and pushes, and a push means that review is done; agents commit locally and never push.
+  Agents open the PR only after the push. (2) The PR review before merge; agents never merge
+  unless the user asks.
 - **Ignored files:** `build/` is gitignored and unprotected, so copy results that matter into
   `reports/`. Mark a folder to keep with an empty `clean.keep` file inside it. Before removing a
   worktree, a `build/` folder or any ignored directory, list what is ignored (`git status
@@ -135,7 +139,10 @@ For stacked PRs:
 
 For every PR:
 
-- open it as a Draft; the user pushes the branches, then the PR is opened;
+- open it only after the user has pushed the branches (the push is the first review gate, so the
+  body says the author reviewed the diff before pushing, not "review pending");
+- open it ready for review, not as a Draft, when the task is complete; the PR review stays the
+  second gate before merge. Use a Draft only for unfinished work the user wants to share early;
 - body: Summary (diagram or tree), Evidence (before and after), Merge Danger (door and blast
   radius), `Depends on:` for the parent, `Refs:` for the tracking issue;
 - add the AI-assistance section from `fasthep/CONTRIBUTING.md` and name the model; commits carry
