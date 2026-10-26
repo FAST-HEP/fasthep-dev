@@ -1,23 +1,14 @@
 {
-  "release": "2026.08.1",
   "packages": {
-    "flow": "2026.08.1",
-    "carpenter": "2026.08.1",
-    "curator": "2026.08.1",
-    "render": "2026.08.1",
-    "cli": "2026.08.1",
-    "toolbench": "2026.08.1",
-    "workshop": "2026.08.1",
-    "fasthep": "2026.08.1"
+    "toolbench": {"dist": "fasthep-toolbench", "version": "2026.10.1"},
+    "flow": {"dist": "fasthep-flow", "version": "2026.10.1"},
+    "distributed": {"dist": "fasthep-distributed", "version": "2026.10.1"},
+    "carpenter": {"dist": "fasthep-carpenter", "version": "2026.10.1"},
+    "curator": {"dist": "fasthep-curator", "version": "2026.10.1"},
+    "render": {"dist": "fasthep-render", "version": "2026.10.1"},
+    "cli": {"dist": "fasthep-cli", "version": "2026.10.1"},
+    "workshop": {"dist": "fasthep-workshop", "version": "2026.10.1"},
+    "fasthep": {"dist": "fasthep", "version": "2026.10.1"}
   },
-  "order": [
-    "flow",
-    "carpenter",
-    "curator",
-    "render",
-    "cli",
-    "toolbench",
-    "workshop",
-    "fasthep"
-  ]
+  "order": ["toolbench", "flow", "distributed", "carpenter", "curator", "render", "cli", "workshop", "fasthep"]
 }
