@@ -1,35 +1,21 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
-PACKAGE_DISTS = {
-    "flow": "fasthep-flow",
-    "carpenter": "fasthep-carpenter",
-    "curator": "fasthep-curator",
-    "render": "fasthep-render",
-    "cli": "fasthep-cli",
-    "toolbench": "fasthep-toolbench",
-    "workshop": "fasthep-workshop",
-    "fasthep": "fasthep",
-}
-
-META_PACKAGE = "fasthep"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from release_data import META_PACKAGE, ReleasePlan, load_release_plan, run_git  # noqa: E402
 
 
 @dataclass(frozen=True, slots=True)
 class PackageTag:
     key: str
     path: Path
+    dist: str
     version: str
-
-    @property
-    def dist(self) -> str:
-        return PACKAGE_DISTS[self.key]
 
     @property
     def tag(self) -> str:
@@ -43,14 +29,18 @@ class PackageTag:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create FAST-HEP release tags.")
     parser.add_argument("release_file", type=Path)
-    parser.add_argument("--package", choices=sorted(PACKAGE_DISTS))
+    parser.add_argument("--package")
     parser.add_argument("--include-meta", action="store_true")
     parser.add_argument("--push", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     root = Path.cwd()
-    plan = _read_release(args.release_file)
+    plan = load_release_plan(args.release_file)
+    if args.package is not None and args.package not in plan.packages:
+        raise SystemExit(
+            f"Unknown package {args.package!r}, expected one of {sorted(plan.packages)}"
+        )
     tags = _selected_tags(
         root=root,
         plan=plan,
@@ -79,33 +69,24 @@ def main() -> int:
     return 0
 
 
-def _read_release(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as handle:
-        data = json.load(handle)
-    if not isinstance(data.get("packages"), dict):
-        raise SystemExit("releases.json must contain a packages object")
-    if not isinstance(data.get("order"), list):
-        raise SystemExit("releases.json must contain an order list")
-    return data
-
-
 def _selected_tags(
     *,
     root: Path,
-    plan: dict[str, Any],
+    plan: ReleasePlan,
     package: str | None,
     include_meta: bool,
 ) -> list[PackageTag]:
     if package is not None:
         keys = [package]
     else:
-        keys = [
-            key
-            for key in plan["order"]
-            if include_meta or key != META_PACKAGE
-        ]
+        keys = [key for key in plan.order if include_meta or key != META_PACKAGE]
     return [
-        PackageTag(key=key, path=root / key, version=plan["packages"][key])
+        PackageTag(
+            key=key,
+            path=root / key,
+            dist=plan.packages[key].dist,
+            version=plan.packages[key].version,
+        )
         for key in keys
     ]
 
@@ -119,7 +100,7 @@ def _create_or_report_tag(
     if not item.path.exists():
         raise SystemExit(f"{item.key}: path does not exist: {item.path}")
 
-    exists = _git(item.path, "tag", "--list", item.tag)
+    exists = run_git(item.path, "tag", "--list", item.tag)
     if exists.returncode != 0:
         raise SystemExit(f"{item.key}: could not list tags: {exists.stderr.strip()}")
     if exists.stdout.strip():
@@ -149,16 +130,6 @@ def _push_tag(item: PackageTag, *, dry_run: bool) -> None:
     if result.returncode != 0:
         raise SystemExit(f"{item.key}: failed to push tag: {result.stderr.strip()}")
     print(f"Pushed {item.tag} from {item.key}/")
-
-
-def _git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *args],
-        cwd=cwd,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
 
 
 if __name__ == "__main__":

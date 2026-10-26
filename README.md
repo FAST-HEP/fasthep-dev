@@ -74,51 +74,22 @@ FAST-HEP releases are coordinated from this development workspace.
 
 Release versions are defined in `releases.json`
 
-Start by reviewing the planned release:
-
-```bash
-pixi run release-plan
-```
-
-Check that all package repositories are clean and ready:
-
-```bash
-pixi run release-check
-```
-
-Update package versions and dependency pins:
-
-```bash
-pixi run release-update-versions-dry
-pixi run release-update-versions
-```
-
-Run the release checks again:
-
-```bash
-pixi run release-check
-```
-
-Tag all non-meta packages:
-
-```bash
-pixi run release-tag
-pixi run release-tag-push
-```
-
-At this point, stop.
-
-Push `workshop` first and wait until CI and Read the Docs are green.
-
-Only after the workshop release is confirmed, tag the meta package:
-
-```bash
-python scripts/release/tag_packages.py releases.json --package fasthep --push
-```
-
-The `fasthep` meta package is tagged last because it depends on the released versions of the rest of the ecosystem.
+1. Review the plan: `pixi run release-plan` (now also validates topological release order; a
+   failure here means `releases.json` itself needs fixing before anything else).
+2. Check repo state: `pixi run release-check` (now also validates calendar-versioned version
+   numbers and `workshop/pixi.toml` pins, in addition to order).
+3. Update versions and pins: `pixi run release-update-versions-dry` then `pixi run release-update-versions`
+   (now also rewrites `workshop/pixi.toml`'s FAST-HEP pins to `==`).
+4. Re-run `pixi run release-check` and confirm it passes.
+5. Tag every package except `fasthep`: `pixi run release-tag` then `pixi run release-tag-push`.
+6. **Stop before tagging `workshop`'s dependents further and before `fasthep`.** Run workshop's
+   tutorials/examples locally (`cd workshop && pixi run test-smoke`, or the equivalent full
+   tutorial run) and confirm they're green — this is a manual step, not CI, per the workshop
+   AGENTS.md tutorial-execution policy.
+7. Once workshop's tag is pushed and its CI/Read the Docs build is green, aggregate the changelog:
+   `pixi run release-aggregate-changelog-dry` then `pixi run release-aggregate-changelog`, and
+   commit the resulting `fasthep/CHANGELOG.md`.
+8. Tag the meta package last:
+   `python scripts/release/tag_packages.py releases.json --package fasthep --push`.
 
 During alpha, normal PyPI-based CI may be marked as non-blocking. The temporary alpha CI workflows install FAST-HEP dependencies from Git and should be treated as the relevant integration signal.
-
-```
-```
