@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from packaging.requirements import InvalidRequirement, Requirement
+
 META_PACKAGE = "fasthep"
+
+_FASTHEP_DIST_RE = re.compile(r"^fasthep(-.+)?$", re.IGNORECASE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,3 +68,52 @@ def run_git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         check=False,
     )
+
+
+def _dependency_specs(pyproject_path: Path) -> list[str]:
+    data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+    project = data.get("project") or {}
+    specs: list[str] = list(project.get("dependencies") or [])
+    for extra_deps in (project.get("optional-dependencies") or {}).values():
+        specs.extend(extra_deps)
+    return specs
+
+
+def fasthep_dependency_keys(pyproject_path: Path, dist_to_key: dict[str, str]) -> set[str]:
+    keys: set[str] = set()
+    for spec in _dependency_specs(pyproject_path):
+        try:
+            requirement = Requirement(spec)
+        except InvalidRequirement:
+            continue
+        key = dist_to_key.get(requirement.name.lower())
+        if key is not None:
+            keys.add(key)
+    return keys
+
+
+def validate_order(plan: ReleasePlan, root: Path) -> list[str]:
+    dist_to_key = {spec.dist.lower(): key for key, spec in plan.packages.items()}
+    errors: list[str] = []
+    for index, key in enumerate(plan.order):
+        pyproject = root / key / "pyproject.toml"
+        if not pyproject.exists():
+            continue
+        for spec in _dependency_specs(pyproject):
+            try:
+                requirement = Requirement(spec)
+            except InvalidRequirement:
+                continue
+            if not _FASTHEP_DIST_RE.match(requirement.name):
+                continue
+            dep_key = dist_to_key.get(requirement.name.lower())
+            if dep_key is None:
+                errors.append(
+                    f"{key}: depends on '{requirement.name}', which is not in the release order"
+                )
+                continue
+            if plan.order.index(dep_key) >= index:
+                errors.append(
+                    f"{key}: depends on '{dep_key}', which is not earlier in the release order"
+                )
+    return errors
