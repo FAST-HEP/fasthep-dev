@@ -12,6 +12,13 @@ from packaging.requirements import InvalidRequirement, Requirement
 
 META_PACKAGE = "fasthep"
 
+# Packages whose FAST-HEP dependency pins update_versions.py rewrites to exact
+# versions, listed in the order they must be pinned-and-tagged. An editable,
+# not-yet-tagged dependency can never satisfy an exact pin, so each of these is
+# only safe to tag once every earlier entry in `order` (and, for "fasthep",
+# "workshop" too) already has a real tag — never as part of the default batch.
+PINNED_LAST: tuple[str, ...] = ("workshop", META_PACKAGE)
+
 _FASTHEP_DIST_RE = re.compile(r"^fasthep(-.+)?$", re.IGNORECASE)
 _CALENDAR_VERSION_RE = re.compile(r"^(\d{4})\.(\d{2})\.(\d+)$")
 
@@ -195,5 +202,42 @@ def validate_workshop_pins(plan: ReleasePlan, root: Path) -> list[str]:
             errors.append(
                 f"workshop: pixi.toml pins '{spec.dist}' as {version_spec!r}, "
                 f"expected {expected!r}"
+            )
+    return errors
+
+
+def validate_pin_readiness(plan: ReleasePlan, root: Path, key: str) -> list[str]:
+    """Check that every FAST-HEP dependency `key` declares (in its pyproject.toml,
+    and — for "workshop" — its pixi.toml FAST-HEP pins too) already has a matching
+    git tag in its own repo. `key` is a PINNED_LAST package (its dependency pins
+    are about to be rewritten to exact versions); an untagged dependency's
+    editable/dev-snapshot version can never satisfy an exact pin."""
+    dist_to_key = {spec.dist.lower(): other_key for other_key, spec in plan.packages.items()}
+    dep_keys: set[str] = set()
+
+    pyproject = root / key / "pyproject.toml"
+    if pyproject.exists():
+        dep_keys |= fasthep_dependency_keys(pyproject, dist_to_key)
+
+    if key == "workshop":
+        pixi_path = root / "workshop" / "pixi.toml"
+        if pixi_path.exists():
+            data = tomllib.loads(pixi_path.read_text(encoding="utf-8"))
+            raw_deps = data.get("feature", {}).get("released", {}).get("pypi-dependencies", {})
+            for dist_name in raw_deps:
+                dep_key = dist_to_key.get(dist_name.lower())
+                if dep_key is not None:
+                    dep_keys.add(dep_key)
+
+    errors: list[str] = []
+    for dep_key in sorted(dep_keys):
+        if dep_key == key:
+            continue
+        target_version = plan.packages[dep_key].version
+        tag_check = run_git(root / dep_key, "tag", "--list", target_version)
+        if not tag_check.stdout.strip():
+            errors.append(
+                f"{key}: cannot pin '{plan.packages[dep_key].dist}' to {target_version!r} "
+                f"— {dep_key} is not tagged {target_version!r} yet"
             )
     return errors

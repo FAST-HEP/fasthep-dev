@@ -11,7 +11,12 @@ from typing import Any
 from packaging.requirements import InvalidRequirement, Requirement
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from release_data import ReleasePlan, load_release_plan  # noqa: E402
+from release_data import (  # noqa: E402
+    PINNED_LAST,
+    ReleasePlan,
+    load_release_plan,
+    validate_pin_readiness,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,30 +55,31 @@ def main() -> int:
             ),
         )
 
-    if args.package is None or args.package == "fasthep":
-        path = root / "fasthep" / "pyproject.toml"
+    for key in PINNED_LAST:
+        if args.package is not None and args.package != key:
+            continue
+        if not args.dry_run:
+            readiness_errors = validate_pin_readiness(plan, root, key)
+            if readiness_errors:
+                for error in readiness_errors:
+                    print(error, file=sys.stderr)
+                raise SystemExit(1)
+        path = root / key / "pyproject.toml"
         _queue_update(
             updates,
             path=path,
             description="FAST-HEP dependency pins",
             after=_update_dependency_pins_text(_current_text(updates, path), dist_versions),
         )
-    if args.package is None or args.package == "workshop":
-        path = root / "workshop" / "pyproject.toml"
-        _queue_update(
-            updates,
-            path=path,
-            description="FAST-HEP dependency pins",
-            after=_update_dependency_pins_text(_current_text(updates, path), dist_versions),
-        )
-        pixi_path = root / "workshop" / "pixi.toml"
-        if pixi_path.exists():
-            _queue_update(
-                updates,
-                path=pixi_path,
-                description="workshop pixi.toml FAST-HEP pins",
-                after=_update_pixi_pins_text(_current_text(updates, pixi_path), dist_versions),
-            )
+        if key == "workshop":
+            pixi_path = root / "workshop" / "pixi.toml"
+            if pixi_path.exists():
+                _queue_update(
+                    updates,
+                    path=pixi_path,
+                    description="workshop pixi.toml FAST-HEP pins",
+                    after=_update_pixi_pins_text(_current_text(updates, pixi_path), dist_versions),
+                )
 
     changes = list(updates.values())
     if not changes:

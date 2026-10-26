@@ -84,6 +84,19 @@ release-update-versions-dry = "python scripts/release/update_versions.py release
 release-tag = "python scripts/release/tag_packages.py releases.json"
 release-tag-dry = "python scripts/release/tag_packages.py releases.json --dry-run"
 release-tag-push = "python scripts/release/tag_packages.py releases.json --push"
+# workshop and fasthep are never part of the default batch above (see
+# release_data.PINNED_LAST) — their pins reference packages that must already
+# be tagged, so they're always updated and tagged individually, in this order.
+release-update-versions-workshop-dry = "python scripts/release/update_versions.py releases.json --package workshop --dry-run"
+release-update-versions-workshop = "python scripts/release/update_versions.py releases.json --package workshop"
+release-tag-workshop-dry = "python scripts/release/tag_packages.py releases.json --package workshop --dry-run"
+release-tag-workshop = "python scripts/release/tag_packages.py releases.json --package workshop"
+release-tag-workshop-push = "python scripts/release/tag_packages.py releases.json --package workshop --push"
+release-update-versions-fasthep-dry = "python scripts/release/update_versions.py releases.json --package fasthep --dry-run"
+release-update-versions-fasthep = "python scripts/release/update_versions.py releases.json --package fasthep"
+release-tag-fasthep-dry = "python scripts/release/tag_packages.py releases.json --package fasthep --dry-run"
+release-tag-fasthep = "python scripts/release/tag_packages.py releases.json --package fasthep"
+release-tag-fasthep-push = "python scripts/release/tag_packages.py releases.json --package fasthep --push"
 release-aggregate-changelog-dry = "python scripts/release/aggregate_changelog.py releases.json --dry-run"
 release-aggregate-changelog = "python scripts/release/aggregate_changelog.py releases.json"
 

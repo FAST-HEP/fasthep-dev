@@ -240,3 +240,91 @@ def test_dry_run_rewrites_workshop_pixi_toml(tmp_path: Path) -> None:
     assert "Would update" in result.stdout
     assert "pixi.toml" in result.stdout
     assert pixi_toml.read_text(encoding="utf-8") == original
+
+
+def _write_release_and_workshop(tmp_path: Path, *, tag_flow: bool) -> tuple[Path, Path]:
+    release_file = tmp_path / "releases.json"
+    release_file.write_text(
+        json.dumps(
+            {
+                "packages": {
+                    "flow": {"dist": "fasthep-flow", "version": "2026.10.1"},
+                    "workshop": {"dist": "fasthep-workshop", "version": "2026.10.1"},
+                },
+                "order": ["flow", "workshop"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    flow_dir = tmp_path / "flow"
+    flow_dir.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=flow_dir, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "--allow-empty", "-m", "x", "-q"],
+        cwd=flow_dir,
+        check=True,
+    )
+    if tag_flow:
+        subprocess.run(["git", "tag", "2026.10.1"], cwd=flow_dir, check=True)
+
+    workshop_dir = tmp_path / "workshop"
+    workshop_dir.mkdir()
+    pyproject = workshop_dir / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "fasthep-workshop"\ndynamic = ["version"]\n'
+        'dependencies = [\n    "fasthep-flow",\n]\n',
+        encoding="utf-8",
+    )
+    return release_file, pyproject
+
+
+def test_dry_run_previews_even_when_dependency_is_untagged(tmp_path: Path) -> None:
+    release_file, pyproject = _write_release_and_workshop(tmp_path, tag_flow=False)
+    original = pyproject.read_text(encoding="utf-8")
+
+    script = Path(__file__).parents[1] / "update_versions.py"
+    result = subprocess.run(
+        [sys.executable, str(script), str(release_file), "--package", "workshop", "--dry-run"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Would update" in result.stdout
+    assert pyproject.read_text(encoding="utf-8") == original
+
+
+def test_real_run_refuses_when_dependency_is_untagged(tmp_path: Path) -> None:
+    release_file, pyproject = _write_release_and_workshop(tmp_path, tag_flow=False)
+    original = pyproject.read_text(encoding="utf-8")
+
+    script = Path(__file__).parents[1] / "update_versions.py"
+    result = subprocess.run(
+        [sys.executable, str(script), str(release_file), "--package", "workshop"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "not tagged" in result.stderr
+    assert pyproject.read_text(encoding="utf-8") == original
+
+
+def test_real_run_succeeds_when_dependency_is_tagged(tmp_path: Path) -> None:
+    release_file, pyproject = _write_release_and_workshop(tmp_path, tag_flow=True)
+
+    script = Path(__file__).parents[1] / "update_versions.py"
+    result = subprocess.run(
+        [sys.executable, str(script), str(release_file), "--package", "workshop"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "fasthep-flow == 2026.10.1" in pyproject.read_text(encoding="utf-8")
