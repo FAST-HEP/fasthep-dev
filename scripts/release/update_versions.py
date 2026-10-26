@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import sys
 import tomllib
@@ -11,26 +10,8 @@ from typing import Any
 
 from packaging.requirements import InvalidRequirement, Requirement
 
-PACKAGE_DISTS = {
-    "flow": "fasthep-flow",
-    "carpenter": "fasthep-carpenter",
-    "curator": "fasthep-curator",
-    "render": "fasthep-render",
-    "cli": "fasthep-cli",
-    "toolbench": "fasthep-toolbench",
-    "workshop": "fasthep-workshop",
-    "fasthep": "fasthep",
-}
-
-DEPENDENCY_KEYS = {
-    "flow",
-    "carpenter",
-    "curator",
-    "render",
-    "cli",
-    "toolbench",
-    "workshop",
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from release_data import ReleasePlan, load_release_plan  # noqa: E402
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,13 +26,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Update FAST-HEP release versions.")
     parser.add_argument("release_file", type=Path)
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--package", choices=sorted(PACKAGE_DISTS))
+    parser.add_argument("--package")
     args = parser.parse_args()
 
     root = Path.cwd()
-    plan = _read_release(args.release_file)
-    versions: dict[str, str] = dict(plan["packages"])
-    selected = [args.package] if args.package else list(plan["order"])
+    plan: ReleasePlan = load_release_plan(args.release_file)
+    if args.package is not None and args.package not in plan.packages:
+        raise SystemExit(
+            f"Unknown package {args.package!r}, expected one of {sorted(plan.packages)}"
+        )
+    dist_versions = {spec.dist.lower(): spec.version for spec in plan.packages.values()}
+    selected = [args.package] if args.package else list(plan.order)
 
     updates: dict[Path, Change] = {}
     for key in selected:
@@ -60,7 +45,9 @@ def main() -> int:
             updates,
             path=path,
             description="package version",
-            after=_update_package_version_text(path, _current_text(updates, path), versions[key]),
+            after=_update_package_version_text(
+                path, _current_text(updates, path), plan.packages[key].version
+            ),
         )
 
     if args.package is None or args.package == "fasthep":
@@ -69,7 +56,7 @@ def main() -> int:
             updates,
             path=path,
             description="FAST-HEP dependency pins",
-            after=_update_dependency_pins_text(_current_text(updates, path), versions),
+            after=_update_dependency_pins_text(_current_text(updates, path), dist_versions),
         )
     if args.package is None or args.package == "workshop":
         path = root / "workshop" / "pyproject.toml"
@@ -77,8 +64,16 @@ def main() -> int:
             updates,
             path=path,
             description="FAST-HEP dependency pins",
-            after=_update_dependency_pins_text(_current_text(updates, path), versions),
+            after=_update_dependency_pins_text(_current_text(updates, path), dist_versions),
         )
+        pixi_path = root / "workshop" / "pixi.toml"
+        if pixi_path.exists():
+            _queue_update(
+                updates,
+                path=pixi_path,
+                description="workshop pixi.toml FAST-HEP pins",
+                after=_update_pixi_pins_text(_current_text(updates, pixi_path), dist_versions),
+            )
 
     changes = list(updates.values())
     if not changes:
@@ -92,19 +87,11 @@ def main() -> int:
             change.path.write_text(change.after, encoding="utf-8")
 
     if not args.dry_run:
-        _assert_project_names_safe([change.path for change in changes])
+        _assert_project_names_safe(
+            [change.path for change in changes if change.path.name == "pyproject.toml"]
+        )
 
     return 0
-
-
-def _read_release(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as handle:
-        data = json.load(handle)
-    if not isinstance(data.get("packages"), dict):
-        raise SystemExit("releases.json must contain a packages object")
-    if not isinstance(data.get("order"), list):
-        raise SystemExit("releases.json must contain an order list")
-    return data
 
 
 def _current_text(updates: dict[Path, Change], path: Path) -> str:
@@ -159,12 +146,7 @@ def _update_package_version_text(path: Path, text: str, version: str) -> str:
     return text
 
 
-def _update_dependency_pins_text(text: str, versions: dict[str, str]) -> str:
-    dist_versions = {
-        PACKAGE_DISTS[key].lower(): version
-        for key, version in versions.items()
-        if key in DEPENDENCY_KEYS
-    }
+def _update_dependency_pins_text(text: str, dist_versions: dict[str, str]) -> str:
     parsed = tomllib.loads(text)
     ranges = _dependency_array_ranges(text, parsed)
     if not ranges:
@@ -178,6 +160,23 @@ def _update_dependency_pins_text(text: str, versions: dict[str, str]) -> str:
         cursor = end
     pieces.append(text[cursor:])
     return "".join(pieces)
+
+
+def _update_pixi_pins_text(text: str, dist_versions: dict[str, str]) -> str:
+    updated = text
+    for dist, version in dist_versions.items():
+        escaped = re.escape(dist)
+        updated = re.sub(
+            rf'(?m)^{escaped} = "[^"]*"$',
+            f'{dist} = "=={version}"',
+            updated,
+        )
+        updated = re.sub(
+            rf'(?m)^{escaped} = \{{version = "[^"]*"\}}$',
+            f'{dist} = {{version = "=={version}"}}',
+            updated,
+        )
+    return updated
 
 
 def _dependency_array_ranges(
