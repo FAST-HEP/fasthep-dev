@@ -32,6 +32,14 @@ hatchling = "*"
 hatch-vcs = "*"
 cupy = "*"
 cuda-version = "12.6.*"
+# documentation toolchain (same set as the `docs` feature of the packages), so that docs can be built from `dev`
+sphinx = "*"
+myst-parser = "*"
+pydata-sphinx-theme = "*"
+sphinx-copybutton = "*"
+sphinx-design = "*"
+sphinxcontrib-mermaid = "*"
+sphinx-autobuild = "*"
 
 
 [feature.dev.pypi-dependencies]
