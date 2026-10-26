@@ -50,4 +50,4 @@ def test_check_release_reports_order_and_version_errors(tmp_path):
     )
 
     assert result.returncode == 1, result.stdout + result.stderr
-    assert "flow" in result.stdout and "toolbench" in result.stdout
+    assert "is not earlier in the release order" in result.stdout

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from scripts.release.release_data import (
     PackageSpec,
     ReleasePlan,
+    latest_tag,
     load_release_plan,
     validate_calendar_version,
     validate_order,
@@ -131,6 +133,16 @@ def test_validate_order_is_case_insensitive(tmp_path):
     assert validate_order(plan, tmp_path) == []
 
 
+def test_validate_order_flags_dependency_on_package_missing_from_order(tmp_path):
+    # "toolbench" is a known package (in `packages`) but was left out of `order" by mistake.
+    _write_pyproject(tmp_path / "cli", deps=["fasthep-toolbench"])
+    plan = _plan({"cli": "fasthep-cli", "toolbench": "fasthep-toolbench"}, order=["cli"])
+
+    errors = validate_order(plan, tmp_path)
+
+    assert any("fasthep-toolbench" in e or "toolbench" in e for e in errors)
+
+
 def test_validate_order_flags_unregistered_fasthep_dependency(tmp_path):
     _write_pyproject(tmp_path / "cli", deps=["fasthep-notarealpackage"])
     plan = _plan({"cli": "fasthep-cli"}, order=["cli"])
@@ -201,3 +213,51 @@ def test_validate_workshop_pins_ignores_packages_not_listed(tmp_path):
     plan = _plan({"flow": "fasthep-flow", "workshop": "fasthep-workshop"}, order=["flow", "workshop"])
 
     assert validate_workshop_pins(plan, tmp_path) == []
+
+
+def test_validate_workshop_pins_is_noop_when_workshop_not_in_plan(tmp_path):
+    # a --package flow check-release run shouldn't fail on workshop's pixi.toml at all
+    plan = _plan({"flow": "fasthep-flow", "toolbench": "fasthep-toolbench"}, order=["toolbench", "flow"])
+
+    assert validate_workshop_pins(plan, tmp_path) == []
+
+
+def test_validate_workshop_pins_is_case_insensitive(tmp_path):
+    _write_pixi_toml(tmp_path, {"Fasthep-Flow": '">=2026.08.1"'})
+    plan = _plan({"flow": "fasthep-flow", "workshop": "fasthep-workshop"}, order=["flow", "workshop"])
+
+    errors = validate_workshop_pins(plan, tmp_path)
+
+    assert any("fasthep-flow" in e.lower() for e in errors)
+
+
+def test_validate_workshop_pins_rejects_non_version_pin_form(tmp_path):
+    # pixi allows {path=..., editable=...} or {git=...} tables; a FAST-HEP pin in that form
+    # is not an exact version pin and must be reported, not crash with KeyError.
+    _write_pixi_toml(tmp_path, {"fasthep-flow": '{path = "../flow", editable = true}'})
+    plan = _plan({"flow": "fasthep-flow", "workshop": "fasthep-workshop"}, order=["flow", "workshop"])
+
+    errors = validate_workshop_pins(plan, tmp_path)
+
+    assert any("fasthep-flow" in e for e in errors)
+
+
+def _git_repo_with_tags(path: Path, tags: list[str]) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q"], cwd=path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "--allow-empty", "-m", "x", "-q"],
+        cwd=path,
+        check=True,
+    )
+    for tag in tags:
+        subprocess.run(["git", "tag", tag], cwd=path, check=True)
+
+
+def test_latest_tag_is_not_fooled_by_leading_zero_version_sort(tmp_path):
+    # git's --sort=-v:refname treats "2026.5.0" as sorting above "2026.08.4" (strverscmp
+    # compares the unpadded "5" against the padded "08" as a fraction) even though
+    # 2026.08.4 is the later calendar version.
+    _git_repo_with_tags(tmp_path, ["2026.5.0", "2026.08.4", "2026.08.3"])
+
+    assert latest_tag(tmp_path) == "2026.08.4"

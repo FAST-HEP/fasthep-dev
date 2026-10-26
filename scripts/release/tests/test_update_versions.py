@@ -114,6 +114,28 @@ def test_pixi_pins_rewritten_string_form() -> None:
     assert 'fasthep-distributed = "==2026.10.1"' in updated
 
 
+def test_pixi_pins_rewritten_case_insensitively() -> None:
+    text = '[feature.released.pypi-dependencies]\nFasthep-Flow = ">=2026.08.3"\n'
+
+    updated = _update_pixi_pins_text(text, {"fasthep-flow": "2026.10.1"})
+
+    assert 'Fasthep-Flow = "==2026.10.1"' in updated
+
+
+def test_pixi_pins_only_rewritten_inside_released_section() -> None:
+    text = (
+        "[pypi-dependencies]\n"
+        'fasthep-flow = "*"\n'
+        "[feature.released.pypi-dependencies]\n"
+        'fasthep-flow = ">=2026.08.1"\n'
+    )
+
+    updated = _update_pixi_pins_text(text, {"fasthep-flow": "2026.10.1"})
+
+    assert 'fasthep-flow = "*"' in updated
+    assert 'fasthep-flow = "==2026.10.1"' in updated
+
+
 def test_pixi_pins_leaves_unknown_entries_unchanged() -> None:
     text = '[feature.released.pypi-dependencies]\nuproot-browser = "*"\n'
 

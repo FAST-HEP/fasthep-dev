@@ -108,9 +108,10 @@ def validate_order(plan: ReleasePlan, root: Path) -> list[str]:
             if not _FASTHEP_DIST_RE.match(requirement.name):
                 continue
             dep_key = dist_to_key.get(requirement.name.lower())
-            if dep_key is None:
+            if dep_key is None or dep_key not in plan.order:
+                name = dep_key if dep_key is not None else requirement.name
                 errors.append(
-                    f"{key}: depends on '{requirement.name}', which is not in the release order"
+                    f"{key}: depends on '{name}', which is not in the release order"
                 )
                 continue
             if plan.order.index(dep_key) >= index:
@@ -156,27 +157,39 @@ def validate_calendar_version(key: str, latest_tag: str | None, candidate: str) 
 
 
 def latest_tag(path: Path) -> str | None:
-    result = run_git(path, "tag", "--list", "20*.*.*", "--sort=-v:refname")
+    result = run_git(path, "tag", "--list")
     if result.returncode != 0:
         return None
-    lines = [line for line in result.stdout.splitlines() if line.strip()]
-    return lines[0] if lines else None
+    candidates: list[tuple[str, tuple[int, int, int]]] = []
+    for line in result.stdout.splitlines():
+        match = _CALENDAR_VERSION_RE.match(line.strip())
+        if match is not None:
+            candidates.append(
+                (line.strip(), (int(match[1]), int(match[2]), int(match[3])))
+            )
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: item[1])[0]
 
 
 def validate_workshop_pins(plan: ReleasePlan, root: Path) -> list[str]:
+    if "workshop" not in plan.packages:
+        return []
+
     pixi_path = root / "workshop" / "pixi.toml"
     if not pixi_path.exists():
         return [f"workshop: pixi.toml is missing: {pixi_path}"]
 
     data = tomllib.loads(pixi_path.read_text(encoding="utf-8"))
-    deps = data.get("feature", {}).get("released", {}).get("pypi-dependencies", {})
+    raw_deps = data.get("feature", {}).get("released", {}).get("pypi-dependencies", {})
+    deps = {name.lower(): entry for name, entry in raw_deps.items()}
 
     errors: list[str] = []
     for key, spec in plan.packages.items():
-        if key in ("workshop", META_PACKAGE) or spec.dist not in deps:
+        if key in ("workshop", META_PACKAGE) or spec.dist.lower() not in deps:
             continue
-        entry = deps[spec.dist]
-        version_spec = entry["version"] if isinstance(entry, dict) else entry
+        entry = deps[spec.dist.lower()]
+        version_spec = entry.get("version") if isinstance(entry, dict) else entry
         expected = f"=={spec.version}"
         if version_spec != expected:
             errors.append(

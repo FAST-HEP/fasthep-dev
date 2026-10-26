@@ -163,20 +163,25 @@ def _update_dependency_pins_text(text: str, dist_versions: dict[str, str]) -> st
 
 
 def _update_pixi_pins_text(text: str, dist_versions: dict[str, str]) -> str:
-    updated = text
+    bounds = _section_bounds(text).get("feature.released.pypi-dependencies")
+    if bounds is None:
+        return text
+
+    start, end = bounds
+    section = text[start:end]
     for dist, version in dist_versions.items():
         escaped = re.escape(dist)
-        updated = re.sub(
-            rf'(?m)^{escaped} = "[^"]*"$',
-            f'{dist} = "=={version}"',
-            updated,
+        section = re.sub(
+            rf'(?mi)^({escaped}) = "[^"]*"$',
+            rf'\1 = "=={version}"',
+            section,
         )
-        updated = re.sub(
-            rf'(?m)^{escaped} = \{{version = "[^"]*"\}}$',
-            f'{dist} = {{version = "=={version}"}}',
-            updated,
+        section = re.sub(
+            rf'(?mi)^({escaped}) = \{{version = "[^"]*"\}}$',
+            rf'\1 = {{version = "=={version}"}}',
+            section,
         )
-    return updated
+    return text[:start] + section + text[end:]
 
 
 def _dependency_array_ranges(

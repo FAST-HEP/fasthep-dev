@@ -74,17 +74,18 @@ FAST-HEP releases are coordinated from this development workspace.
 
 Release versions are defined in `releases.json`
 
-1. Review the plan: `pixi run release-plan` (now also validates topological order and calendar
-   versions; a failure here means `releases.json` itself needs fixing before anything else).
-2. Check repo state: `pixi run release-check` (now also validates `workshop/pixi.toml` pins).
+1. Review the plan: `pixi run release-plan` (now also validates topological release order; a
+   failure here means `releases.json` itself needs fixing before anything else).
+2. Check repo state: `pixi run release-check` (now also validates calendar-versioned version
+   numbers and `workshop/pixi.toml` pins, in addition to order).
 3. Update versions and pins: `pixi run release-update-versions-dry` then `pixi run release-update-versions`
    (now also rewrites `workshop/pixi.toml`'s FAST-HEP pins to `==`).
 4. Re-run `pixi run release-check` and confirm it passes.
 5. Tag every package except `fasthep`: `pixi run release-tag` then `pixi run release-tag-push`.
 6. **Stop before tagging `workshop`'s dependents further and before `fasthep`.** Run workshop's
-   tutorials/examples locally (`pixi run -e workshop test-smoke` or the equivalent full tutorial
-   run) and confirm they're green — this is a manual step, not CI, per the workshop AGENTS.md
-   tutorial-execution policy.
+   tutorials/examples locally (`cd workshop && pixi run test-smoke`, or the equivalent full
+   tutorial run) and confirm they're green — this is a manual step, not CI, per the workshop
+   AGENTS.md tutorial-execution policy.
 7. Once workshop's tag is pushed and its CI/Read the Docs build is green, aggregate the changelog:
    `pixi run release-aggregate-changelog-dry` then `pixi run release-aggregate-changelog`, and
    commit the resulting `fasthep/CHANGELOG.md`.
