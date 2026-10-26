@@ -105,6 +105,12 @@ It is normally safe to ignore files not tracked by Git:
   investigation results that may be relevant to refactors or design work. `tasks/` is still to be
   decided.
 
+## Documentation
+
+User-facing changes to workspace scripts or pixi tasks (new commands, changed behaviour, removed
+options) should update the relevant page under `docs/` (for example `docs/scripts.md` for
+`scripts/`). This workspace is not released and has no `CHANGELOG.md`.
+
 ## Dashboard
 
 `dashboard/app.py` is a human convenience interface for viewing repository
