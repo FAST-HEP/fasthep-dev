@@ -13,6 +13,7 @@ from packaging.requirements import InvalidRequirement, Requirement
 META_PACKAGE = "fasthep"
 
 _FASTHEP_DIST_RE = re.compile(r"^fasthep(-.+)?$", re.IGNORECASE)
+_CALENDAR_VERSION_RE = re.compile(r"^(\d{4})\.(\d{2})\.(\d+)$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,3 +118,46 @@ def validate_order(plan: ReleasePlan, root: Path) -> list[str]:
                     f"{key}: depends on '{dep_key}', which is not earlier in the release order"
                 )
     return errors
+
+
+def validate_calendar_version(key: str, latest_tag: str | None, candidate: str) -> list[str]:
+    candidate_match = _CALENDAR_VERSION_RE.match(candidate)
+    if candidate_match is None:
+        return [f"{key}: version '{candidate}' is not in YYYY.MM.N calendar-version form"]
+    year, month, patch = (int(candidate_match[1]), int(candidate_match[2]), int(candidate_match[3]))
+
+    if latest_tag is None:
+        if patch != 1:
+            return [f"{key}: first release must start at patch 1, got '{candidate}'"]
+        return []
+
+    latest_match = _CALENDAR_VERSION_RE.match(latest_tag)
+    if latest_match is None:
+        return []
+
+    latest_year, latest_month, latest_patch = (
+        int(latest_match[1]),
+        int(latest_match[2]),
+        int(latest_match[3]),
+    )
+
+    if (year, month) < (latest_year, latest_month):
+        return [f"{key}: version '{candidate}' goes backwards from latest tag '{latest_tag}'"]
+    if (year, month) == (latest_year, latest_month):
+        if patch != latest_patch + 1:
+            return [
+                f"{key}: same month as '{latest_tag}', expected patch {latest_patch + 1}, "
+                f"got {patch}"
+            ]
+        return []
+    if patch != 1:
+        return [f"{key}: new month vs '{latest_tag}' must reset patch to 1, got {patch}"]
+    return []
+
+
+def latest_tag(path: Path) -> str | None:
+    result = run_git(path, "tag", "--list", "20*.*.*", "--sort=-v:refname")
+    if result.returncode != 0:
+        return None
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    return lines[0] if lines else None

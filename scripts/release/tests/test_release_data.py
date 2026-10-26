@@ -5,7 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from scripts.release.release_data import PackageSpec, ReleasePlan, load_release_plan, validate_order
+from scripts.release.release_data import (
+    PackageSpec,
+    ReleasePlan,
+    load_release_plan,
+    validate_calendar_version,
+    validate_order,
+)
 
 
 def _write_pyproject(path: Path, deps: list[str]) -> None:
@@ -121,3 +127,22 @@ def test_validate_order_flags_unregistered_fasthep_dependency(tmp_path):
     errors = validate_order(plan, tmp_path)
 
     assert any("notarealpackage" in e.lower() or "fasthep-notarealpackage" in e for e in errors)
+
+
+@pytest.mark.parametrize(
+    "latest,candidate,ok",
+    [
+        (None, "2026.10.1", True),
+        (None, "2026.10.2", False),
+        ("2026.10.1", "2026.10.2", True),
+        ("2026.10.1", "2026.10.3", False),  # skipped a patch
+        ("2026.10.4", "2026.11.1", True),  # new month resets
+        ("2026.10.4", "2026.11.2", False),  # new month must start at 1
+        ("2026.10.4", "2026.09.1", False),  # goes backwards
+        ("2026.10.4", "not-a-version", False),
+    ],
+)
+def test_validate_calendar_version(latest, candidate, ok):
+    errors = validate_calendar_version("flow", latest, candidate)
+
+    assert (errors == []) is ok
