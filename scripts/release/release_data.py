@@ -161,3 +161,26 @@ def latest_tag(path: Path) -> str | None:
         return None
     lines = [line for line in result.stdout.splitlines() if line.strip()]
     return lines[0] if lines else None
+
+
+def validate_workshop_pins(plan: ReleasePlan, root: Path) -> list[str]:
+    pixi_path = root / "workshop" / "pixi.toml"
+    if not pixi_path.exists():
+        return [f"workshop: pixi.toml is missing: {pixi_path}"]
+
+    data = tomllib.loads(pixi_path.read_text(encoding="utf-8"))
+    deps = data.get("feature", {}).get("released", {}).get("pypi-dependencies", {})
+
+    errors: list[str] = []
+    for key, spec in plan.packages.items():
+        if key in ("workshop", META_PACKAGE) or spec.dist not in deps:
+            continue
+        entry = deps[spec.dist]
+        version_spec = entry["version"] if isinstance(entry, dict) else entry
+        expected = f"=={spec.version}"
+        if version_spec != expected:
+            errors.append(
+                f"workshop: pixi.toml pins '{spec.dist}' as {version_spec!r}, "
+                f"expected {expected!r}"
+            )
+    return errors
