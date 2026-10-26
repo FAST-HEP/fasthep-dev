@@ -76,6 +76,8 @@ release-update-versions-dry = "python scripts/release/update_versions.py release
 release-tag = "python scripts/release/tag_packages.py releases.json"
 release-tag-dry = "python scripts/release/tag_packages.py releases.json --dry-run"
 release-tag-push = "python scripts/release/tag_packages.py releases.json --push"
+release-aggregate-changelog-dry = "python scripts/release/aggregate_changelog.py releases.json --dry-run"
+release-aggregate-changelog = "python scripts/release/aggregate_changelog.py releases.json"
 
 smoke-submodules = "git submodule status --recursive"
 
