@@ -111,4 +111,11 @@ If `pixi run` fails to solve an environment partway through for an unrelated rea
 the AFS lock on lxplus), fall back to the environment's own Python directly, e.g.
 `.pixi/envs/scripts/bin/python scripts/release/tag_packages.py releases.json --package workshop`.
 
+`pixi`/`uv` cache an editable package's hatch-vcs version by the mtime of its `pyproject.toml`, not
+by its git state, so a bare `git tag` leaves `pixi run` resolving the pre-tag dev-snapshot version
+indefinitely — the exact failure this procedure exists to prevent. `tag_packages.py` touches each
+tagged package's `pyproject.toml` right after creating its tag to bust that cache; if a tag is ever
+created outside the script, `touch <package>/pyproject.toml` (or delete its generated
+`src/.../_version.py`, which is git-ignored and safe to remove) afterwards.
+
 During alpha, normal PyPI-based CI may be marked as non-blocking. The temporary alpha CI workflows install FAST-HEP dependencies from Git and should be treated as the relevant integration signal.

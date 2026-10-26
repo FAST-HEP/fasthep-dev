@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+import os
+import subprocess
+import sys
+import time
 from pathlib import Path
 
 from scripts.release.release_data import PackageSpec, ReleasePlan
@@ -49,3 +54,51 @@ def test_explicit_package_fasthep_is_selected_alone(tmp_path: Path) -> None:
     keys = [item.key for item in _selected_tags(root=tmp_path, plan=plan, package="fasthep")]
 
     assert keys == ["fasthep"]
+
+
+def test_creating_a_tag_touches_pyproject_to_bust_stale_editable_version_cache(
+    tmp_path: Path,
+) -> None:
+    # pixi/uv cache an editable package's hatch-vcs version by pyproject.toml's
+    # mtime, not by git state, so a bare `git tag` leaves `pixi run` resolving
+    # the pre-tag dev-snapshot version forever. Touching pyproject.toml after
+    # tagging busts that cache.
+    package_dir = tmp_path / "toolbench"
+    package_dir.mkdir()
+    pyproject = package_dir / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "fasthep-toolbench"\ndynamic = ["version"]\n',
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "init", "-q"], cwd=package_dir, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=package_dir, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "x", "-q"],
+        cwd=package_dir,
+        check=True,
+    )
+    stale_mtime = time.time() - 3600
+    os.utime(pyproject, (stale_mtime, stale_mtime))
+
+    release_file = tmp_path / "releases.json"
+    release_file.write_text(
+        json.dumps(
+            {
+                "packages": {"toolbench": {"dist": "fasthep-toolbench", "version": "2026.10.1"}},
+                "order": ["toolbench"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    script = Path(__file__).parents[1] / "tag_packages.py"
+    result = subprocess.run(
+        [sys.executable, str(script), str(release_file), "--package", "toolbench"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert pyproject.stat().st_mtime > stale_mtime

@@ -128,6 +128,17 @@ def _create_or_report_tag(
     if result.returncode != 0:
         raise SystemExit(f"{item.key}: failed to create tag: {result.stderr.strip()}")
     print(f"Created {item.tag} in {item.key}/")
+    _bust_stale_editable_version_cache(item)
+
+
+def _bust_stale_editable_version_cache(item: PackageTag) -> None:
+    # pixi/uv treat an editable package's hatch-vcs version as valid until
+    # pyproject.toml's mtime changes; a bare `git tag` doesn't touch it, so
+    # without this, `pixi run` keeps resolving the pre-tag dev-snapshot
+    # version indefinitely.
+    pyproject = item.path / "pyproject.toml"
+    if pyproject.exists():
+        pyproject.touch()
 
 
 def _push_tag(item: PackageTag, *, dry_run: bool) -> None:
