@@ -74,13 +74,22 @@ FAST-HEP releases are coordinated from this development workspace.
 
 Release versions are defined in `releases.json`
 
-`workshop` and `fasthep` are pinned-last: their dependency pins get rewritten to exact versions
-(`==`), and an exact pin can only ever resolve against a package that already has a real git tag —
-an editable, not-yet-tagged dependency always reports a dev-snapshot version instead. So their
-pins are updated, and they're tagged, strictly after everything they depend on already has a real
-tag — never together with the rest, and never before. `scripts/release/update_versions.py` refuses
-to write an exact pin to an untagged dependency (`release_data.validate_pin_readiness`), so getting
-the order below wrong fails loudly rather than leaving an unresolvable `pixi.toml`/`pyproject.toml`.
+`workshop` and `fasthep` are pinned-last: their dependency pins get rewritten only once everything
+they depend on already has a real git tag — an editable, not-yet-tagged dependency always reports a
+dev-snapshot version instead, which no pin referencing the target release version can resolve
+against. `scripts/release/update_versions.py` refuses to write a pin to an untagged dependency
+(`release_data.validate_pin_readiness`), so getting the order below wrong fails loudly rather than
+leaving an unresolvable `pixi.toml`/`pyproject.toml`.
+
+`fasthep`'s pyproject.toml and `workshop/pixi.toml`'s `[feature.released...]` pins are exact (`==`):
+both describe a released, reproducible dependency bundle. `workshop/pyproject.toml`'s own
+dependencies are floor-pinned (`>=`) instead, permanently — not just until a better procedure
+exists. That file is also read as editable dev-workspace package metadata, and an exact pin there
+breaks the moment a pinned dependency gets so much as one more ordinary commit after its tag (its
+hatch-vcs dev-snapshot version no longer equals the pin, even though it is newer). A floor pin
+tolerates that; only the tag-time snapshot captured in `workshop/pixi.toml` needs to be exact. A
+working git checkout for ongoing cross-package development matters more than workshop's own
+pyproject.toml metadata being exactly reproducible.
 
 0. **Before anything else**, validate cross-package integration against this workspace's editable
    packages: `pixi run --environment dev release-preflight` (currently: workshop's smoke suite,
@@ -102,7 +111,7 @@ the order below wrong fails loudly rather than leaving an unresolvable `pixi.tom
    update before tagging them; skip straight to tagging.)
 4. Update `workshop`'s version and pins, now that everything it depends on is tagged:
    `pixi run release-update-versions-workshop-dry` then `pixi run release-update-versions-workshop`
-   (rewrites `workshop/pyproject.toml` and `workshop/pixi.toml`'s FAST-HEP pins to `==`).
+   (rewrites `workshop/pyproject.toml`'s FAST-HEP pins to `>=` and `workshop/pixi.toml`'s to `==`).
 5. Re-run `pixi run release-check` and confirm it passes.
 6. Tag and push `workshop`: `pixi run release-tag-workshop-dry` then `pixi run release-tag-workshop`
    then `pixi run release-tag-workshop-push`.

@@ -65,11 +65,20 @@ def main() -> int:
                     print(error, file=sys.stderr)
                 raise SystemExit(1)
         path = root / key / "pyproject.toml"
+        # workshop's pyproject.toml is floor-pinned (>=), not exact: it is also
+        # read as editable dev-workspace package metadata, where an exact pin
+        # breaks the moment a dependency gets so much as one more commit after
+        # its tag. Exact pins for a real release are workshop/pixi.toml's job
+        # (see _update_pixi_pins_text below). fasthep (the metapackage) keeps
+        # exact pins: it is the released, reproducible dependency bundle.
+        operator = ">=" if key == "workshop" else "=="
         _queue_update(
             updates,
             path=path,
             description="FAST-HEP dependency pins",
-            after=_update_dependency_pins_text(_current_text(updates, path), dist_versions),
+            after=_update_dependency_pins_text(
+                _current_text(updates, path), dist_versions, operator=operator
+            ),
         )
         if key == "workshop":
             pixi_path = root / "workshop" / "pixi.toml"
@@ -152,7 +161,12 @@ def _update_package_version_text(path: Path, text: str, version: str) -> str:
     return text
 
 
-def _update_dependency_pins_text(text: str, dist_versions: dict[str, str]) -> str:
+def _update_dependency_pins_text(
+    text: str,
+    dist_versions: dict[str, str],
+    *,
+    operator: str = "==",
+) -> str:
     parsed = tomllib.loads(text)
     ranges = _dependency_array_ranges(text, parsed)
     if not ranges:
@@ -162,7 +176,7 @@ def _update_dependency_pins_text(text: str, dist_versions: dict[str, str]) -> st
     cursor = 0
     for start, end in ranges:
         pieces.append(text[cursor:start])
-        pieces.append(_pin_dependency_array_text(text[start:end], dist_versions))
+        pieces.append(_pin_dependency_array_text(text[start:end], dist_versions, operator))
         cursor = end
     pieces.append(text[cursor:])
     return "".join(pieces)
@@ -275,10 +289,11 @@ def _matching_bracket_offset(text: str, bracket_start: int) -> int:
 def _pin_dependency_array_text(
     array_text: str,
     dist_versions: dict[str, str],
+    operator: str,
 ) -> str:
     return re.sub(
         r'"((?:[^"\\]|\\.)*)"',
-        lambda match: _pin_dependency_match(match, dist_versions),
+        lambda match: _pin_dependency_match(match, dist_versions, operator),
         array_text,
     )
 
@@ -286,10 +301,11 @@ def _pin_dependency_array_text(
 def _pin_dependency_match(
     match: re.Match[str],
     dist_versions: dict[str, str],
+    operator: str,
 ) -> str:
     raw = match.group(1)
     dependency = bytes(raw, "utf-8").decode("unicode_escape")
-    updated = _pin_dependency_string(dependency, dist_versions)
+    updated = _pin_dependency_string(dependency, dist_versions, operator)
     if updated == dependency:
         return match.group(0)
     return '"' + updated.replace("\\", "\\\\").replace('"', '\\"') + '"'
@@ -298,6 +314,7 @@ def _pin_dependency_match(
 def _pin_dependency_string(
     dependency: str,
     dist_versions: dict[str, str],
+    operator: str,
 ) -> str:
     try:
         requirement = Requirement(dependency)
@@ -309,7 +326,7 @@ def _pin_dependency_string(
 
     extras = f"[{','.join(sorted(requirement.extras))}]" if requirement.extras else ""
     marker = f"; {requirement.marker}" if requirement.marker else ""
-    return f"{requirement.name}{extras} == {version}{marker}"
+    return f"{requirement.name}{extras} {operator} {version}{marker}"
 
 
 def _assert_project_names_safe(paths: list[Path]) -> None:

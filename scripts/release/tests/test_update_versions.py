@@ -98,6 +98,21 @@ dependencies = [
     ]
 
 
+def test_dependencies_can_be_floor_pinned_with_explicit_operator() -> None:
+    text = """
+[project]
+name = "example"
+dependencies = [
+    "fasthep-flow",
+]
+"""
+
+    updated = _update_dependency_pins_text(text, DIST_VERSIONS, operator=">=")
+    parsed = tomllib.loads(updated)
+
+    assert parsed["project"]["dependencies"] == ["fasthep-flow >= 2026.06.1"]
+
+
 def test_pixi_pins_rewritten_table_form() -> None:
     text = '[feature.released.pypi-dependencies]\nfasthep-flow = {version = ">=2026.08.3"}\n'
 
@@ -314,12 +329,63 @@ def test_real_run_refuses_when_dependency_is_untagged(tmp_path: Path) -> None:
     assert pyproject.read_text(encoding="utf-8") == original
 
 
-def test_real_run_succeeds_when_dependency_is_tagged(tmp_path: Path) -> None:
+def test_real_run_floor_pins_workshop_dependencies_when_tagged(tmp_path: Path) -> None:
+    # workshop's pyproject.toml dependencies are floor-pinned (>=), not exact, so
+    # ordinary further commits on a dependency's main branch after its tag don't
+    # break resolving workshop as an editable dev-workspace package. Exact pins
+    # for a real release are workshop/pixi.toml's job (see
+    # _update_pixi_pins_text / test_dry_run_rewrites_workshop_pixi_toml).
     release_file, pyproject = _write_release_and_workshop(tmp_path, tag_flow=True)
 
     script = Path(__file__).parents[1] / "update_versions.py"
     result = subprocess.run(
         [sys.executable, str(script), str(release_file), "--package", "workshop"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "fasthep-flow >= 2026.10.1" in pyproject.read_text(encoding="utf-8")
+
+
+def test_real_run_keeps_exact_pin_for_fasthep_metapackage(tmp_path: Path) -> None:
+    release_file = tmp_path / "releases.json"
+    release_file.write_text(
+        json.dumps(
+            {
+                "packages": {
+                    "flow": {"dist": "fasthep-flow", "version": "2026.10.1"},
+                    "fasthep": {"dist": "fasthep", "version": "2026.10.1"},
+                },
+                "order": ["flow", "fasthep"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    flow_dir = tmp_path / "flow"
+    flow_dir.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=flow_dir, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "--allow-empty", "-m", "x", "-q"],
+        cwd=flow_dir,
+        check=True,
+    )
+    subprocess.run(["git", "tag", "2026.10.1"], cwd=flow_dir, check=True)
+
+    fasthep_dir = tmp_path / "fasthep"
+    fasthep_dir.mkdir()
+    pyproject = fasthep_dir / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "fasthep"\ndynamic = ["version"]\n'
+        'dependencies = [\n    "fasthep-flow",\n]\n',
+        encoding="utf-8",
+    )
+
+    script = Path(__file__).parents[1] / "update_versions.py"
+    result = subprocess.run(
+        [sys.executable, str(script), str(release_file), "--package", "fasthep"],
         cwd=tmp_path,
         text=True,
         capture_output=True,
