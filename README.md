@@ -82,6 +82,16 @@ tag — never together with the rest, and never before. `scripts/release/update_
 to write an exact pin to an untagged dependency (`release_data.validate_pin_readiness`), so getting
 the order below wrong fails loudly rather than leaving an unresolvable `pixi.toml`/`pyproject.toml`.
 
+0. **Before anything else**, validate cross-package integration against this workspace's editable
+   packages: `pixi run --environment dev release-preflight` (currently: workshop's smoke suite,
+   `test-smoke-workshop`, run against the `dev` environment rather than workshop's own released
+   environment). Tagging and pushing is irreversible: each package's CI publishes that tag's version
+   to PyPI immediately once it's pushed, and a published version can never be retagged or
+   unpublished. A cross-package regression caught here costs a code fix; the same regression caught
+   after tagging costs a patch release. (This gate was added after a 2026.10.1 release shipped a
+   carpenter cutflow-merging bug across datasets that only `test-smoke-workshop` caught, by which
+   point the affected packages were already tagged, pushed, and published.) Once FAST-HEP reaches
+   beta, this check belongs in each package's own CI rather than only here.
 1. Review the plan: `pixi run release-plan` (validates topological release order; a failure here
    means `releases.json` itself needs fixing before anything else).
 2. Check repo state: `pixi run release-check` (validates calendar-versioned version numbers and
@@ -96,9 +106,13 @@ the order below wrong fails loudly rather than leaving an unresolvable `pixi.tom
 5. Re-run `pixi run release-check` and confirm it passes.
 6. Tag and push `workshop`: `pixi run release-tag-workshop-dry` then `pixi run release-tag-workshop`
    then `pixi run release-tag-workshop-push`.
-7. **Stop.** Run workshop's tutorials/examples locally (`cd workshop && pixi run test-smoke`, or the
-   equivalent full tutorial run) and confirm they're green — this is a manual step, not CI, per the
-   workshop AGENTS.md tutorial-execution policy.
+7. **Stop.** Run workshop's tutorials/examples locally against the now-published packages
+   (`cd workshop && pixi run test-smoke`, or the equivalent full tutorial run) and confirm they're
+   green — this is a manual step, not CI, per the workshop AGENTS.md tutorial-execution policy. This
+   is a *different* check from step 0's `release-preflight`: step 0 validates against this
+   workspace's editable packages before anything is tagged; this step validates workshop's own
+   released environment against the packages just published, which can still fail even when step 0
+   passed (for example a packaging/sdist issue that only shows up in a real install).
 8. Once workshop's tag is pushed and its CI/Read the Docs build is green, aggregate the changelog:
    `pixi run release-aggregate-changelog-dry` then `pixi run release-aggregate-changelog`, and
    commit the resulting `fasthep/CHANGELOG.md`.

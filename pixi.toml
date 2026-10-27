@@ -137,6 +137,17 @@ smoke-workshop = { depends-on = [
   "smoke-l1trigger",
 ] }
 
+test-workshop = { cmd = "pytest tests -m 'not smoke'", cwd = "workshop" }
+test-smoke-workshop = { cmd = "pytest tests/smoke -m smoke", cwd = "workshop" }
+
+# Workshop's smoke suite runs real tutorials end to end against whatever packages
+# resolve in this environment. Running it here (dev: all FAST-HEP packages editable
+# from this workspace's local checkouts) is the only way to catch a cross-package
+# integration regression before it's tagged — once a tag is pushed, each package's
+# CI publishes that version to PyPI immediately and permanently; there is no retagging
+# or unpublishing it. See "Release procedure" in README.md.
+release-preflight = { depends-on = ["test-smoke-workshop"] }
+
 # -----------------------------------------------------------------------------
 # fasthep-flow
 # -----------------------------------------------------------------------------
@@ -208,6 +219,7 @@ test-all = { depends-on = [
   "test-cli",
   "test-toolbench",
   "test-fasthep",
+  "test-workshop",
 ] }
 
 lint-all = { depends-on = [
