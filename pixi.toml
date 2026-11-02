@@ -97,6 +97,9 @@ release-update-versions-fasthep = "python scripts/release/update_versions.py rel
 release-tag-fasthep-dry = "python scripts/release/tag_packages.py releases.json --package fasthep --dry-run"
 release-tag-fasthep = "python scripts/release/tag_packages.py releases.json --package fasthep"
 release-tag-fasthep-push = "python scripts/release/tag_packages.py releases.json --package fasthep --push"
+# Step 7 of the release procedure: examples and tutorials 01 to 06 in workshop's released environment.
+release-validate-dry = "bash scripts/release/validate_release.sh"
+release-validate = "bash scripts/release/validate_release.sh --run"
 release-aggregate-changelog-dry = "python scripts/release/aggregate_changelog.py releases.json --dry-run"
 release-aggregate-changelog = "python scripts/release/aggregate_changelog.py releases.json"
 
