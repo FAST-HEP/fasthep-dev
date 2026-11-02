@@ -31,3 +31,6 @@
 [submodule "distributed"]
 	path = distributed
 	url = git@github.com:FAST-HEP/fasthep-distributed.git
+[submodule "dot-github"]
+	path = dot-github
+	url = git@github.com:FAST-HEP/.github.git

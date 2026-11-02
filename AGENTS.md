@@ -35,6 +35,7 @@ human-facing contribution guide.
 | `cli` | `fasthep-cli` | `fasthep` command-line interface and user-facing diagnostics |
 | `toolbench` | `fasthep-toolbench` | shared utilities, discovery helpers, external-tool adapters |
 | `workshop` | `fasthep-workshop` | runnable tutorials, training examples, curated tutorial assets |
+| `dot-github` | `.github` | shared release machinery: git-cliff template, commit convention, changelog contract script, reusable CI workflows |
 | `main-docs` | `fast-hep.github.io` | high-level project portal and package signposting |
 | `fasthep` | `fasthep` | metapackage, released dependency bundles, install smoke tests |
 | `hinv` | H->invisible migration | CMS analysis integration, separate from FAST-HEP; `hinv/chip` is the evolving full-analysis example; workspace scripts and pixi tasks do not touch it |

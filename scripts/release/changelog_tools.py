@@ -1,7 +1,7 @@
 """Glue to the shared changelog tool in FAST-HEP/.github (``scripts/fasthep_changelog.py``).
 
 The tool and its ``cliff.toml`` live in a local checkout of that repository, by default
-``external/dot-github`` (override with ``FASTHEP_DOTGITHUB``). It is called through its command
+``dot-github`` (override with ``FASTHEP_DOTGITHUB``). It is called through its command
 line, the same one CI uses, so a rule only has to be fixed there.
 """
 
@@ -14,8 +14,8 @@ import tempfile
 from pathlib import Path
 
 TOOLS_ENV = "FASTHEP_DOTGITHUB"
-DEFAULT_TOOLS_DIR = Path("external") / "dot-github"
-CLONE_HINT = "git clone https://github.com/FAST-HEP/.github external/dot-github"
+DEFAULT_TOOLS_DIR = Path("dot-github")
+CLONE_HINT = "git submodule update --init dot-github"
 
 
 class ToolFailure(Exception):
@@ -28,7 +28,7 @@ def tools_script(root: Path) -> Path:
     if not script.exists():
         raise SystemExit(
             f"changelog tool not found at {script}\n"
-            f"  clone it:  {CLONE_HINT}\n  or set {TOOLS_ENV} to a checkout of FAST-HEP/.github"
+            f"  get it:  {CLONE_HINT}\n  or set {TOOLS_ENV} to a checkout of FAST-HEP/.github"
         )
     return script
 

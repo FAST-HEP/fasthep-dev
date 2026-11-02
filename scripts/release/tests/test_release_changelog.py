@@ -104,7 +104,7 @@ def plan_of(**versions: str) -> ReleasePlan:
 def test_missing_tool_explains_how_to_get_it(tmp_path, monkeypatch):
     monkeypatch.setenv("FASTHEP_DOTGITHUB", str(tmp_path / "nowhere"))
     (tmp_path / "CHANGELOG.md").write_text(BASE_CHANGELOG)
-    with pytest.raises(SystemExit, match="git clone"):
+    with pytest.raises(SystemExit, match="git submodule update"):
         check_contract(tmp_path, tmp_path / "CHANGELOG.md", "1")
 
 

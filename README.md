@@ -109,7 +109,7 @@ pyproject.toml metadata being exactly reproducible.
    then `pixi run --environment scripts release-changelog` (commits `docs(changelog): add X release`
    in each package that is released). Review, push and merge those commits like any other change,
    then `pixi run --environment scripts release-check-changelog`. Tagging refuses a package without
-   its `## [X]` section. Needs a checkout of FAST-HEP/.github in `external/dot-github`; the whole
+   its `## [X]` section. Needs the `dot-github` submodule (FAST-HEP/.github); the whole
    path is in `docs/release-path.md`.
 3. Tag every package except `workshop` and `fasthep`: `pixi run release-tag-dry` then
    `pixi run release-tag` then `pixi run release-tag-push`. (Their own "version" update is a no-op

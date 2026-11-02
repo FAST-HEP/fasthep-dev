@@ -104,7 +104,7 @@ release-tag-fasthep-push = "python scripts/release/tag_packages.py releases.json
 release-validate-dry = "bash scripts/release/validate_release.sh"
 release-validate = "bash scripts/release/validate_release.sh --run"
 # Changelog step, before tagging: draft `## [X]` with git-cliff from the commits since each tag
-# (rules and template in the FAST-HEP/.github checkout, external/dot-github). The dry run is the preview.
+# (rules and template in the FAST-HEP/.github checkout, dot-github). The dry run is the preview.
 release-changelog-dry = "python scripts/release/release_changelog.py releases.json write"
 release-changelog = "python scripts/release/release_changelog.py releases.json write --write"
 release-check-changelog = "python scripts/release/release_changelog.py releases.json check"
