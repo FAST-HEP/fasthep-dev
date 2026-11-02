@@ -47,7 +47,7 @@ def main() -> int:
         return 0
 
     for item in tags:
-        _create_or_report_tag(item, dry_run=args.dry_run, allow_existing=args.push)
+        _create_or_report_tag(item, dry_run=args.dry_run)
         if args.push:
             _push_tag(item, dry_run=args.dry_run)
 
@@ -105,7 +105,6 @@ def _create_or_report_tag(
     item: PackageTag,
     *,
     dry_run: bool,
-    allow_existing: bool,
 ) -> None:
     if not item.path.exists():
         raise SystemExit(f"{item.key}: path does not exist: {item.path}")
@@ -114,10 +113,11 @@ def _create_or_report_tag(
     if exists.returncode != 0:
         raise SystemExit(f"{item.key}: could not list tags: {exists.stderr.strip()}")
     if exists.stdout.strip():
-        if allow_existing:
-            print(f"Using existing local tag {item.tag} in {item.key}/")
-            return
-        raise SystemExit(f"{item.key}: local tag already exists: {item.tag}")
+        # A new version means changes: a package with none since its last tag stays at that
+        # version in releases.json, so its tag already exists. Skip it (also lets a re-run
+        # resume after a partial failure) instead of aborting and leaving later packages untagged.
+        print(f"{item.key}/ is already tagged {item.tag}, skipping")
+        return
 
     cmd = ["git", "tag", "-a", item.tag, "-m", item.message]
     if dry_run:
