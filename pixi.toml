@@ -132,6 +132,9 @@ clean = { depends-on = ["clean-pycache", "clean-caches"] }
 # Mirror open issues of the FAST-HEP roadmap project (GitHub) into tasks/issues/ (read-only remote).
 tasks-sync = "python scripts/dev/tasks_sync.py"
 tasks-sync-dry = "python scripts/dev/tasks_sync.py --dry-run"
+# Dependabot has no inheritance: copy the template of dot-github (FAST-HEP/.github) into every package.
+sync-dependabot-dry = "python scripts/dev/sync_dependabot.py"
+sync-dependabot = "python scripts/dev/sync_dependabot.py --write"
 
 # Push the FAST-HEP branches listed in tasks/push-manifest.yaml. The default lists what would be
 # pushed; -execute pushes after a typed confirmation on a terminal (a human gate, no way to skip).
