@@ -14,7 +14,7 @@ volume down either way.
 
 Run:
     pip install flask requests python-dotenv   # or: pixi add flask requests python-dotenv
-    cp .env.example .env   # then fill in GITHUB_ACCESS_TOKEN (optional)
+    cp .env.example .env   # then fill in GITHUB_TOKEN (optional)
     python app.py
     # then open http://127.0.0.1:5000/?filter=fasthep
 """
@@ -33,7 +33,7 @@ from flask import Flask, render_template_string, request
 load_dotenv()  # reads .env into os.environ if present; no-op otherwise
 
 GITHUB_API = "https://api.github.com"
-GITHUB_TOKEN = os.environ.get("GITHUB_ACCESS_TOKEN")
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 ORG = "FAST-HEP"
 DEFAULT_FILTER = "fasthep"
 DEFAULT_WORKFLOW = "ci.yml"  # matches .github/workflows/ci.yml's filename
