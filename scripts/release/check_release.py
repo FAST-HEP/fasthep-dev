@@ -85,13 +85,25 @@ def main() -> int:
 
 
 def _check_package(check: PackageCheck, plan: ReleasePlan, *, expected_branch: str) -> list[str]:
-    errors: list[str] = []
     if not check.path.exists():
         return [f"{check.key}: path does not exist: {check.path}"]
     inside = run_git(check.path, "rev-parse", "--is-inside-work-tree")
     if inside.returncode != 0 or inside.stdout.strip() != "true":
-        errors.append(f"{check.key}: not a Git repository: {check.path}")
-        return errors
+        return [f"{check.key}: not a Git repository: {check.path}"]
+
+    local_tag = run_git(check.path, "tag", "--list", check.tag)
+    if local_tag.returncode != 0:
+        return [f"{check.key}: could not list local tags: {local_tag.stderr.strip()}"]
+
+    remote_tag_exists, remote_errors = _remote_tag_exists(check)
+    if remote_errors:
+        return remote_errors
+
+    if local_tag.stdout.strip() or remote_tag_exists:
+        # Already tagged for this release cycle: nothing further to verify.
+        return []
+
+    errors: list[str] = []
 
     status = run_git(check.path, "status", "--porcelain")
     if status.returncode != 0:
@@ -115,13 +127,6 @@ def _check_package(check: PackageCheck, plan: ReleasePlan, *, expected_branch: s
     else:
         errors.extend(_check_pyproject(check, pyproject))
 
-    local_tag = run_git(check.path, "tag", "--list", check.tag)
-    if local_tag.returncode != 0:
-        errors.append(f"{check.key}: could not list local tags: {local_tag.stderr.strip()}")
-    elif local_tag.stdout.strip():
-        errors.append(f"{check.key}: local tag already exists: {check.tag}")
-
-    errors.extend(_check_remote_tag(check))
     errors.extend(validate_calendar_version(check.key, latest_tag(check.path), check.version))
     return errors
 
@@ -140,6 +145,12 @@ def _check_pyproject(check: PackageCheck, pyproject: Path) -> list[str]:
 
     version = project.get("version")
     if version is None:
+        if "version" in set(project.get("dynamic") or []):
+            # hatch-vcs resolves the real version from the git tag, not from
+            # fallback_version; update_versions.py never rewrites it (see
+            # release_data.PINNED_LAST / update_versions.py), so comparing it
+            # here would always flag it as stale.
+            return errors
         version = (
             data.get("tool", {})
             .get("hatch", {})
@@ -154,10 +165,10 @@ def _check_pyproject(check: PackageCheck, pyproject: Path) -> list[str]:
     return errors
 
 
-def _check_remote_tag(check: PackageCheck) -> list[str]:
+def _remote_tag_exists(check: PackageCheck) -> tuple[bool, list[str]]:
     remote = run_git(check.path, "remote", "get-url", "origin")
     if remote.returncode != 0 or not remote.stdout.strip():
-        return []
+        return False, []
 
     result = run_git(
         check.path,
@@ -168,10 +179,10 @@ def _check_remote_tag(check: PackageCheck) -> list[str]:
         f"refs/tags/{check.tag}",
     )
     if result.returncode == 0:
-        return [f"{check.key}: remote tag already exists: {check.tag}"]
+        return True, []
     if result.returncode == 2:
-        return []
-    return [f"{check.key}: could not check remote tag {check.tag}: {result.stderr.strip()}"]
+        return False, []
+    return False, [f"{check.key}: could not check remote tag {check.tag}: {result.stderr.strip()}"]
 
 
 if __name__ == "__main__":

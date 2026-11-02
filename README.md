@@ -74,22 +74,71 @@ FAST-HEP releases are coordinated from this development workspace.
 
 Release versions are defined in `releases.json`
 
-1. Review the plan: `pixi run release-plan` (now also validates topological release order; a
-   failure here means `releases.json` itself needs fixing before anything else).
-2. Check repo state: `pixi run release-check` (now also validates calendar-versioned version
-   numbers and `workshop/pixi.toml` pins, in addition to order).
-3. Update versions and pins: `pixi run release-update-versions-dry` then `pixi run release-update-versions`
-   (now also rewrites `workshop/pixi.toml`'s FAST-HEP pins to `==`).
-4. Re-run `pixi run release-check` and confirm it passes.
-5. Tag every package except `fasthep`: `pixi run release-tag` then `pixi run release-tag-push`.
-6. **Stop before tagging `workshop`'s dependents further and before `fasthep`.** Run workshop's
-   tutorials/examples locally (`cd workshop && pixi run test-smoke`, or the equivalent full
-   tutorial run) and confirm they're green — this is a manual step, not CI, per the workshop
-   AGENTS.md tutorial-execution policy.
-7. Once workshop's tag is pushed and its CI/Read the Docs build is green, aggregate the changelog:
+`workshop` and `fasthep` are pinned-last: their dependency pins get rewritten only once everything
+they depend on already has a real git tag — an editable, not-yet-tagged dependency always reports a
+dev-snapshot version instead, which no pin referencing the target release version can resolve
+against. `scripts/release/update_versions.py` refuses to write a pin to an untagged dependency
+(`release_data.validate_pin_readiness`), so getting the order below wrong fails loudly rather than
+leaving an unresolvable `pixi.toml`/`pyproject.toml`.
+
+`fasthep`'s pyproject.toml and `workshop/pixi.toml`'s `[feature.released...]` pins are exact (`==`):
+both describe a released, reproducible dependency bundle. `workshop/pyproject.toml`'s own
+dependencies are floor-pinned (`>=`) instead, permanently — not just until a better procedure
+exists. That file is also read as editable dev-workspace package metadata, and an exact pin there
+breaks the moment a pinned dependency gets so much as one more ordinary commit after its tag (its
+hatch-vcs dev-snapshot version no longer equals the pin, even though it is newer). A floor pin
+tolerates that; only the tag-time snapshot captured in `workshop/pixi.toml` needs to be exact. A
+working git checkout for ongoing cross-package development matters more than workshop's own
+pyproject.toml metadata being exactly reproducible.
+
+0. **Before anything else**, validate cross-package integration against this workspace's editable
+   packages: `pixi run --environment dev release-preflight` (currently: workshop's smoke suite,
+   `test-smoke-workshop`, run against the `dev` environment rather than workshop's own released
+   environment). Tagging and pushing is irreversible: each package's CI publishes that tag's version
+   to PyPI immediately once it's pushed, and a published version can never be retagged or
+   unpublished. A cross-package regression caught here costs a code fix; the same regression caught
+   after tagging costs a patch release. (This gate was added after a 2026.10.1 release shipped a
+   carpenter cutflow-merging bug across datasets that only `test-smoke-workshop` caught, by which
+   point the affected packages were already tagged, pushed, and published.) Once FAST-HEP reaches
+   beta, this check belongs in each package's own CI rather than only here.
+1. Review the plan: `pixi run release-plan` (validates topological release order; a failure here
+   means `releases.json` itself needs fixing before anything else).
+2. Check repo state: `pixi run release-check` (validates calendar-versioned version numbers and
+   `workshop/pixi.toml` pins, in addition to order).
+3. Tag every package except `workshop` and `fasthep`: `pixi run release-tag-dry` then
+   `pixi run release-tag` then `pixi run release-tag-push`. (Their own "version" update is a no-op
+   for every package here — all are dynamically versioned via `hatch-vcs` — so there is nothing to
+   update before tagging them; skip straight to tagging.)
+4. Update `workshop`'s version and pins, now that everything it depends on is tagged:
+   `pixi run release-update-versions-workshop-dry` then `pixi run release-update-versions-workshop`
+   (rewrites `workshop/pyproject.toml`'s FAST-HEP pins to `>=` and `workshop/pixi.toml`'s to `==`).
+5. Re-run `pixi run release-check` and confirm it passes.
+6. Tag and push `workshop`: `pixi run release-tag-workshop-dry` then `pixi run release-tag-workshop`
+   then `pixi run release-tag-workshop-push`.
+7. **Stop.** Run workshop's tutorials/examples locally against the now-published packages
+   (`cd workshop && pixi run test-smoke`, or the equivalent full tutorial run) and confirm they're
+   green — this is a manual step, not CI, per the workshop AGENTS.md tutorial-execution policy. This
+   is a *different* check from step 0's `release-preflight`: step 0 validates against this
+   workspace's editable packages before anything is tagged; this step validates workshop's own
+   released environment against the packages just published, which can still fail even when step 0
+   passed (for example a packaging/sdist issue that only shows up in a real install).
+8. Once workshop's tag is pushed and its CI/Read the Docs build is green, aggregate the changelog:
    `pixi run release-aggregate-changelog-dry` then `pixi run release-aggregate-changelog`, and
    commit the resulting `fasthep/CHANGELOG.md`.
-8. Tag the meta package last:
-   `python scripts/release/tag_packages.py releases.json --package fasthep --push`.
+9. Update `fasthep`'s pins, now that `workshop` is tagged too:
+   `pixi run release-update-versions-fasthep-dry` then `pixi run release-update-versions-fasthep`.
+10. Tag and push the meta package last: `pixi run release-tag-fasthep-dry` then
+    `pixi run release-tag-fasthep` then `pixi run release-tag-fasthep-push`.
+
+If `pixi run` fails to solve an environment partway through for an unrelated reason (for example
+the AFS lock on lxplus), fall back to the environment's own Python directly, e.g.
+`.pixi/envs/scripts/bin/python scripts/release/tag_packages.py releases.json --package workshop`.
+
+`pixi`/`uv` cache an editable package's hatch-vcs version by the mtime of its `pyproject.toml`, not
+by its git state, so a bare `git tag` leaves `pixi run` resolving the pre-tag dev-snapshot version
+indefinitely — the exact failure this procedure exists to prevent. `tag_packages.py` touches each
+tagged package's `pyproject.toml` right after creating its tag to bust that cache; if a tag is ever
+created outside the script, `touch <package>/pyproject.toml` (or delete its generated
+`src/.../_version.py`, which is git-ignored and safe to remove) afterwards.
 
 During alpha, normal PyPI-based CI may be marked as non-blocking. The temporary alpha CI workflows install FAST-HEP dependencies from Git and should be treated as the relevant integration signal.

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from release_data import META_PACKAGE, ReleasePlan, load_release_plan, run_git  # noqa: E402
+from release_data import PINNED_LAST, ReleasePlan, load_release_plan, run_git  # noqa: E402
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,7 +30,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Create FAST-HEP release tags.")
     parser.add_argument("release_file", type=Path)
     parser.add_argument("--package")
-    parser.add_argument("--include-meta", action="store_true")
     parser.add_argument("--push", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -41,30 +40,42 @@ def main() -> int:
         raise SystemExit(
             f"Unknown package {args.package!r}, expected one of {sorted(plan.packages)}"
         )
-    tags = _selected_tags(
-        root=root,
-        plan=plan,
-        package=args.package,
-        include_meta=args.include_meta,
-    )
+    tags = _selected_tags(root=root, plan=plan, package=args.package)
 
     if not tags:
         print("No packages selected.")
         return 0
 
     for item in tags:
-        _create_or_report_tag(item, dry_run=args.dry_run, allow_existing=args.push)
+        _create_or_report_tag(item, dry_run=args.dry_run)
         if args.push:
             _push_tag(item, dry_run=args.dry_run)
 
-    if args.package != META_PACKAGE and not args.include_meta:
+    if args.package is None:
         print()
-        print("Stopped before tagging fasthep meta package.")
-        print("Push workshop first and wait for CI/docs to pass.")
-        print("Only continue to fasthep once workshop is green.")
+        print(f"Stopped before tagging {' and '.join(PINNED_LAST)}.")
         print(
-            "Final step: python scripts/release/tag_packages.py "
-            "releases.json --package fasthep --push"
+            "Their pins reference packages just tagged above, so update them now "
+            "that those tags exist:"
+        )
+        print(
+            f"  python scripts/release/update_versions.py releases.json --package {PINNED_LAST[0]}"
+        )
+        print("Then tag it:")
+        print(
+            f"  python scripts/release/tag_packages.py releases.json "
+            f"--package {PINNED_LAST[0]} --push"
+        )
+    elif args.package == PINNED_LAST[0]:
+        print()
+        print(f"{PINNED_LAST[0]} tagged. Push it and wait for CI/docs to pass before continuing.")
+        print(f"Once it's green, update {PINNED_LAST[-1]}'s pins the same way, then tag it last:")
+        print(
+            f"  python scripts/release/update_versions.py releases.json --package {PINNED_LAST[-1]}"
+        )
+        print(
+            f"  python scripts/release/tag_packages.py releases.json "
+            f"--package {PINNED_LAST[-1]} --push"
         )
     return 0
 
@@ -74,12 +85,11 @@ def _selected_tags(
     root: Path,
     plan: ReleasePlan,
     package: str | None,
-    include_meta: bool,
 ) -> list[PackageTag]:
     if package is not None:
         keys = [package]
     else:
-        keys = [key for key in plan.order if include_meta or key != META_PACKAGE]
+        keys = [key for key in plan.order if key not in PINNED_LAST]
     return [
         PackageTag(
             key=key,
@@ -95,7 +105,6 @@ def _create_or_report_tag(
     item: PackageTag,
     *,
     dry_run: bool,
-    allow_existing: bool,
 ) -> None:
     if not item.path.exists():
         raise SystemExit(f"{item.key}: path does not exist: {item.path}")
@@ -104,10 +113,11 @@ def _create_or_report_tag(
     if exists.returncode != 0:
         raise SystemExit(f"{item.key}: could not list tags: {exists.stderr.strip()}")
     if exists.stdout.strip():
-        if allow_existing:
-            print(f"Using existing local tag {item.tag} in {item.key}/")
-            return
-        raise SystemExit(f"{item.key}: local tag already exists: {item.tag}")
+        # A new version means changes: a package with none since its last tag stays at that
+        # version in releases.json, so its tag already exists. Skip it (also lets a re-run
+        # resume after a partial failure) instead of aborting and leaving later packages untagged.
+        print(f"{item.key}/ is already tagged {item.tag}, skipping")
+        return
 
     cmd = ["git", "tag", "-a", item.tag, "-m", item.message]
     if dry_run:
@@ -118,6 +128,17 @@ def _create_or_report_tag(
     if result.returncode != 0:
         raise SystemExit(f"{item.key}: failed to create tag: {result.stderr.strip()}")
     print(f"Created {item.tag} in {item.key}/")
+    _bust_stale_editable_version_cache(item)
+
+
+def _bust_stale_editable_version_cache(item: PackageTag) -> None:
+    # pixi/uv treat an editable package's hatch-vcs version as valid until
+    # pyproject.toml's mtime changes; a bare `git tag` doesn't touch it, so
+    # without this, `pixi run` keeps resolving the pre-tag dev-snapshot
+    # version indefinitely.
+    pyproject = item.path / "pyproject.toml"
+    if pyproject.exists():
+        pyproject.touch()
 
 
 def _push_tag(item: PackageTag, *, dry_run: bool) -> None:

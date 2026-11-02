@@ -13,6 +13,7 @@ from scripts.release.release_data import (
     load_release_plan,
     validate_calendar_version,
     validate_order,
+    validate_pin_readiness,
     validate_workshop_pins,
 )
 
@@ -261,3 +262,51 @@ def test_latest_tag_is_not_fooled_by_leading_zero_version_sort(tmp_path):
     _git_repo_with_tags(tmp_path, ["2026.5.0", "2026.08.4", "2026.08.3"])
 
     assert latest_tag(tmp_path) == "2026.08.4"
+
+
+def test_validate_pin_readiness_passes_when_dependencies_are_tagged(tmp_path):
+    _write_pyproject(tmp_path / "workshop", deps=["fasthep-flow"])
+    _git_repo_with_tags(tmp_path / "flow", ["2026.10.1"])
+    plan = _plan(
+        {"flow": "fasthep-flow", "workshop": "fasthep-workshop"},
+        order=["flow", "workshop"],
+    )
+
+    assert validate_pin_readiness(plan, tmp_path, "workshop") == []
+
+
+def test_validate_pin_readiness_flags_untagged_dependency(tmp_path):
+    _write_pyproject(tmp_path / "workshop", deps=["fasthep-flow"])
+    _git_repo_with_tags(tmp_path / "flow", [])  # no tags at all yet
+    plan = _plan(
+        {"flow": "fasthep-flow", "workshop": "fasthep-workshop"},
+        order=["flow", "workshop"],
+    )
+
+    errors = validate_pin_readiness(plan, tmp_path, "workshop")
+
+    assert any("flow" in e and "2026.10.1" in e for e in errors)
+
+
+def test_validate_pin_readiness_ignores_dependencies_without_a_pyproject(tmp_path):
+    # workshop/pyproject.toml doesn't exist in this fixture — nothing to check.
+    plan = _plan({"workshop": "fasthep-workshop"}, order=["workshop"])
+
+    assert validate_pin_readiness(plan, tmp_path, "workshop") == []
+
+
+def test_validate_pin_readiness_also_checks_workshop_pixi_toml(tmp_path):
+    # fasthep-toolbench appears only in workshop/pixi.toml, not pyproject.toml — a real
+    # gap in the workspace's actual dependency declarations (toolbench and cli are pixi.toml-
+    # only there) that update_versions.py's pixi.toml rewrite must still be guarded against.
+    _write_pyproject(tmp_path / "workshop", deps=[])
+    _write_pixi_toml(tmp_path, {"fasthep-toolbench": '">=2026.08.2"'})
+    _git_repo_with_tags(tmp_path / "toolbench", [])  # not tagged yet
+    plan = _plan(
+        {"toolbench": "fasthep-toolbench", "workshop": "fasthep-workshop"},
+        order=["toolbench", "workshop"],
+    )
+
+    errors = validate_pin_readiness(plan, tmp_path, "workshop")
+
+    assert any("toolbench" in e and "2026.10.1" in e for e in errors)
