@@ -105,6 +105,12 @@ pyproject.toml metadata being exactly reproducible.
    means `releases.json` itself needs fixing before anything else).
 2. Check repo state: `pixi run release-check` (validates calendar-versioned version numbers and
    `workshop/pixi.toml` pins, in addition to order).
+2a. Draft the changelog sections from the commits: `pixi run --environment scripts release-changelog-dry`
+   then `pixi run --environment scripts release-changelog` (commits `docs(changelog): add X release`
+   in each package that is released). Review, push and merge those commits like any other change,
+   then `pixi run --environment scripts release-check-changelog`. Tagging refuses a package without
+   its `## [X]` section. Needs a checkout of FAST-HEP/.github in `external/dot-github`; the whole
+   path is in `docs/release-path.md`.
 3. Tag every package except `workshop` and `fasthep`: `pixi run release-tag-dry` then
    `pixi run release-tag` then `pixi run release-tag-push`. (Their own "version" update is a no-op
    for every package here — all are dynamically versioned via `hatch-vcs` — so there is nothing to

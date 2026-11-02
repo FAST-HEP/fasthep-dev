@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from changelog_tools import check_contract  # noqa: E402
 from release_data import PINNED_LAST, ReleasePlan, load_release_plan, run_git  # noqa: E402
 
 
@@ -45,6 +46,8 @@ def main() -> int:
     if not tags:
         print("No packages selected.")
         return 0
+
+    _require_changelog_contract(root, tags)
 
     for item in tags:
         _create_or_report_tag(item, dry_run=args.dry_run)
@@ -99,6 +102,27 @@ def _selected_tags(
         )
         for key in keys
     ]
+
+
+def _require_changelog_contract(root: Path, tags: list[PackageTag]) -> None:
+    """A new version means changes: refuse before tagging anything if a package that is about to
+    be tagged has no `## [<version>]` changelog section, or a non-empty `## [Unreleased]`.
+
+    Checked up front for the whole batch, also in a dry run, so nothing is half-tagged. Packages
+    that already carry the tag are skipped later and are not checked.
+    """
+    failures: list[str] = []
+    for item in tags:
+        if not item.path.exists() or run_git(item.path, "tag", "--list", item.tag).stdout.strip():
+            continue
+        for problem in check_contract(root, item.path / "CHANGELOG.md", item.version):
+            failures.append(f"{item.key}: {problem}")
+    if failures:
+        raise SystemExit(
+            "Changelog contract failed, nothing tagged "
+            "(run `pixi run --environment scripts release-changelog`):\n  "
+            + "\n  ".join(failures)
+        )
 
 
 def _create_or_report_tag(

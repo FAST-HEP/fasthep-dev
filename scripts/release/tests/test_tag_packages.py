@@ -57,7 +57,7 @@ def test_explicit_package_fasthep_is_selected_alone(tmp_path: Path) -> None:
 
 
 def test_creating_a_tag_touches_pyproject_to_bust_stale_editable_version_cache(
-    tmp_path: Path,
+    tmp_path: Path, passing_changelog_tool: None
 ) -> None:
     # pixi/uv cache an editable package's hatch-vcs version by pyproject.toml's
     # mtime, not by git state, so a bare `git tag` leaves `pixi run` resolving
@@ -70,6 +70,7 @@ def test_creating_a_tag_touches_pyproject_to_bust_stale_editable_version_cache(
         '[project]\nname = "fasthep-toolbench"\ndynamic = ["version"]\n',
         encoding="utf-8",
     )
+    (package_dir / "CHANGELOG.md").write_text("# Changelog\n", encoding="utf-8")
     subprocess.run(["git", "init", "-q"], cwd=package_dir, check=True)
     subprocess.run(["git", "add", "-A"], cwd=package_dir, check=True)
     subprocess.run(
@@ -110,6 +111,7 @@ def _init_package_repo(package_dir: Path) -> None:
         f'[project]\nname = "fasthep-{package_dir.name}"\ndynamic = ["version"]\n',
         encoding="utf-8",
     )
+    (package_dir / "CHANGELOG.md").write_text("# Changelog\n", encoding="utf-8")
     subprocess.run(["git", "init", "-q"], cwd=package_dir, check=True)
     subprocess.run(["git", "add", "-A"], cwd=package_dir, check=True)
     subprocess.run(
@@ -120,7 +122,7 @@ def _init_package_repo(package_dir: Path) -> None:
 
 
 def test_batch_skips_a_package_that_is_already_tagged_and_tags_the_rest(
-    tmp_path: Path,
+    tmp_path: Path, passing_changelog_tool: None
 ) -> None:
     # A package with no changes since its last tag stays at that version in
     # releases.json (new version == changes). Its tag already exists, so the

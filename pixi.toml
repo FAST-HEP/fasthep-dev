@@ -21,6 +21,9 @@ web = ["web"]
 python = ">=3.11"
 pyyaml = "*"
 complexipy = "*"
+# release tooling: changelog drafts (git-cliff) and GitHub Releases (gh)
+git-cliff = "*"
+gh = "*"
 
 [feature.dev.dependencies]
 python = ">=3.11"
@@ -100,6 +103,14 @@ release-tag-fasthep-push = "python scripts/release/tag_packages.py releases.json
 # Step 7 of the release procedure: examples and tutorials 01 to 06 in workshop's released environment.
 release-validate-dry = "bash scripts/release/validate_release.sh"
 release-validate = "bash scripts/release/validate_release.sh --run"
+# Changelog step, before tagging: draft `## [X]` with git-cliff from the commits since each tag
+# (rules and template in the FAST-HEP/.github checkout, external/dot-github). The dry run is the preview.
+release-changelog-dry = "python scripts/release/release_changelog.py releases.json write"
+release-changelog = "python scripts/release/release_changelog.py releases.json write --write"
+release-check-changelog = "python scripts/release/release_changelog.py releases.json check"
+# GitHub Releases for tags that predate the CD release job. Publishing is a human gate.
+release-notes-backfill-dry = "python scripts/release/backfill_releases.py releases.json"
+release-notes-backfill-execute = "python scripts/release/backfill_releases.py releases.json --execute"
 release-aggregate-changelog-dry = "python scripts/release/aggregate_changelog.py releases.json --dry-run"
 release-aggregate-changelog = "python scripts/release/aggregate_changelog.py releases.json"
 
