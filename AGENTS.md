@@ -35,6 +35,7 @@ human-facing contribution guide.
 | `cli` | `fasthep-cli` | `fasthep` command-line interface and user-facing diagnostics |
 | `toolbench` | `fasthep-toolbench` | shared utilities, discovery helpers, external-tool adapters |
 | `workshop` | `fasthep-workshop` | runnable tutorials, training examples, curated tutorial assets |
+| `dot-github` | `.github` | shared release machinery: git-cliff template, commit convention, changelog contract script, reusable CI workflows |
 | `main-docs` | `fast-hep.github.io` | high-level project portal and package signposting |
 | `fasthep` | `fasthep` | metapackage, released dependency bundles, install smoke tests |
 | `hinv` | H->invisible migration | CMS analysis integration, separate from FAST-HEP; `hinv/chip` is the evolving full-analysis example; workspace scripts and pixi tasks do not touch it |
@@ -63,7 +64,7 @@ local filesystem references.
 - **Human gates:** every destructive or external-write action (deleting build output or
   generated mirrors, pushing branches, removing worktrees) needs a typed confirmation on a
   terminal, is refused without one, and has no flag that skips it. Agents run the dry run, never
-  the executing variant (`clean-build-execute`, `push-branches-execute`, `--prune`). Every
+  the executing variant (`clean-build-execute`, `push-branches-execute`, `release-notes-backfill-execute`, `--prune`). Every
   HTCondor submit needs explicit approval.
 - **Review gates:** two human gates, in this order. (1) The push: the user reviews the diff
   locally and pushes, and a push means that review is done; agents commit locally and never push.
