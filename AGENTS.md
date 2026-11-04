@@ -213,11 +213,13 @@ high-priority work, ordered layers) and is read-only. Both are local, like the r
   - Priority: high is P1, normal P2, low P3; P0 only if the maintainer names the item urgent. A hard
     prerequisite of a high-priority item inherits it (the "Ready now" table shows this).
   - Scope: S is Small, M Medium, L and XL Large.
-  - Quarter: the earliest one in which the item can start, never earlier than the latest Quarter of its
-    hard prerequisites; begin with "Ready now", high priority first; soft dependencies only break ties.
-    There is no capacity model: ask how much fits in a quarter before filling one.
-  - Iteration (14-day periods) and Start or Target date only if asked; changing the periods changes the
-    project's configuration and is the maintainer's.
+  - Quarter, the only time field used for now: the earliest one in which the item can start, never earlier
+    than the latest Quarter of its hard prerequisites; begin with "Ready now", high priority first; soft
+    dependencies only break ties. A Quarter is indicative: funding and collaborators are uncertain, so
+    items slip or speed up and the quarters are revisited when that changes. There is no capacity model:
+    ask how much fits in a quarter before filling one.
+  - Iteration, Start date and Target date are not used (dates would be false precision without funding
+    certainty). Do not suggest iteration periods; creating them changes the project's configuration.
   - Team and Difficulty are not derived (Team is set by hand, not by repository). New items start in Backlog.
 
 ## Release And Scripts
