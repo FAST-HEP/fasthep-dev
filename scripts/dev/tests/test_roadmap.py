@@ -303,3 +303,14 @@ def test_a_prerequisite_of_high_priority_work_inherits_its_priority_in_ready() -
     assert roadmap.ready(g) == ["gate", "follower", "other", "soft_only"]
     assert roadmap.inherited_priority(g) == {"gate": "big"}  # soft dependencies do not inherit
     assert "high (unblocks `big`)" in roadmap.render_markdown(g)
+
+
+def test_retired_entries_must_be_lists_of_plain_strings() -> None:
+    g = _graph(a=_node())
+    g["retired"] = {"done": ["fine"], "dropped": [{"oops (2026-11-04": "a colon turned this into a mapping"}], "bad": "text"}
+
+    errors = roadmap.validate(g)
+
+    assert any("retired.dropped" in e for e in errors)
+    assert any("retired.bad" in e for e in errors)
+    assert not any("retired.done" in e for e in errors)

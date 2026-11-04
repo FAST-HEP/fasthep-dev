@@ -65,6 +65,9 @@ def validate(graph: dict[str, Any]) -> list[str]:
             for dep in node.get("depends_on") or []:
                 if dep in nodes and nodes[dep].get("status") != "done":
                     errors.append(f"{key}: is done but depends on '{dep}', which is {nodes[dep].get('status')}")
+    for kind, items in (graph.get("retired") or {}).items():
+        if not isinstance(items, list) or not all(isinstance(i, str) for i in items):
+            errors.append(f"retired.{kind}: must be a list of plain strings (a ': ' inside [...] makes a mapping)")
     cycle = _find_cycle(nodes)
     if cycle:
         errors.append("cycle: " + " -> ".join(cycle))
