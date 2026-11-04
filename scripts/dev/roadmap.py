@@ -3,16 +3,17 @@
 
 The data lives in ``tasks/<date>-roadmap/graph.yaml`` (the source of truth); this tool never edits it.
 Read-only by default: it prints the generated markdown. ``--check`` only validates (cycles, unknown ids,
-bad values, a done item with an open dependency) and exits non-zero on any problem. ``--write PATH`` writes
-the generated markdown, and refuses to if the graph is invalid. FAST-HEP only: chip (``hinv/``) appears only
+bad values, a done item with an open dependency) and checks coverage (a task folder or a mirrored open issue
+that no node accounts for), exiting non-zero on any problem. ``--write [PATH]`` writes the generated markdown
+(default ``ROADMAP.md`` next to the graph), and refuses to if there is any problem. FAST-HEP only: chip (``hinv/``) appears only
 as external nodes in the data and is never read.
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
-from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -22,9 +23,10 @@ KINDS = {"work", "epic", "decision", "milestone", "external", "tracker"}
 STATUSES = {"open", "in_progress", "blocked", "deferred", "done"}
 PRIORITIES = {"high", "normal", "low"}
 SIZES = {"S", "M", "L", "XL"}
-EFFORT_DAYS = {"S": 7, "M": 14, "L": 28, "XL": 56}
 PRIORITY_ORDER = {"high": 0, "normal": 1, "low": 2}
-DEFAULT_GRAPH = Path("tasks/2026-11-04-roadmap/graph.yaml")
+DEFAULT_GRAPH = Path("tasks/roadmap.yaml")
+TASK_FOLDER = re.compile(r"^\d{4}-\d{2}-\d{2}-")
+ISSUE_FILE = re.compile(r"^github-(?P<repo>.+?)-(?P<number>\d+)-")
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -195,17 +197,6 @@ def prerequisites(graph: dict[str, Any], key: str) -> list[str]:
     return sorted(seen, key=lambda k: (layer[k], k))
 
 
-def _mid(key: str) -> str:
-    return key.replace("-", "_")
-
-
-def _gantt_label(title: str, limit: int = 56) -> str:
-    """Gantt task titles end at the first colon; ';', '#' and brackets also break the parser."""
-    text = title.replace(":", " -").replace(";", ",").replace("#", "").replace("[", "(").replace("]", ")")
-    text = " ".join(text.split())
-    return text if len(text) <= limit else text[: limit - 1] + "…"
-
-
 def _issue_cell(node: dict[str, Any]) -> str:
     links = []
     for url in node.get("issue") or []:
@@ -214,74 +205,14 @@ def _issue_cell(node: dict[str, Any]) -> str:
     return ", ".join(links) if links else "none"
 
 
-def schedule(graph: dict[str, Any]) -> dict[str, tuple[int, int]]:
-    """(start offset, duration) in days: an item starts when everything it waits on (hard or soft) has ended."""
-    nodes: dict[str, dict[str, Any]] = graph["nodes"]
-    effort = {**EFFORT_DAYS, **(graph.get("effort_days") or {})}
-    memo: dict[str, tuple[int, int]] = {}
-
-    def plan(key: str) -> tuple[int, int]:
-        if key not in memo:
-            n = nodes[key]
-            deps = [d for d in _deps(n) if d in nodes and nodes[d].get("status") != "done"]
-            begin = max((plan(d)[0] + plan(d)[1] for d in deps), default=0)
-            length = 0 if n["kind"] in ("decision", "external", "tracker", "milestone") else effort[n.get("size", "M")]
-            memo[key] = (begin, length)
-        return memo[key]
-
-    return {key: plan(key) for key in nodes}
-
-
-def render_gantt(graph: dict[str, Any], start: date) -> list[str]:
-    """Mermaid gantt: bars last by size and start after everything they wait on (hard or soft).
-
-    Start dates are computed here (see `schedule`) so the chart does not depend on how Mermaid resolves
-    ``after`` references across sections.
-
-    Not a forecast: durations are placeholders from the size, capacity is unlimited, and decisions and
-    external (chip) work are zero-length milestones that only fix the order. High-priority work and its
-    prerequisites are highlighted.
-    """
-    nodes: dict[str, dict[str, Any]] = graph["nodes"]
-    areas: dict[str, str] = graph.get("areas") or {}
-    layer = layers(graph)
-    plan = schedule(graph)
-    highlighted = set(inherited_priority(graph)) | {k for k, n in nodes.items() if n.get("priority") == "high"}
-    out = [
-        "gantt",
-        "  title Roadmap order (sizes as placeholder durations, unlimited capacity, not a forecast)",
-        "  dateFormat YYYY-MM-DD",
-        "  axisFormat %d %b",
-    ]
-    for area, area_title in areas.items():
-        members = sorted((k for k, n in nodes.items() if n["area"] == area), key=lambda k: (layer[k], k))
-        if not members:
-            continue
-        out.append(f"  section {_gantt_label(area_title)}")
-        for key in members:
-            n = nodes[key]
-            label = _gantt_label(n["title"])
-            if n["status"] in ("blocked", "deferred"):
-                label += f" ({n['status']})"
-            offset, length = plan[key]
-            begin = (start + timedelta(days=offset)).isoformat()
-            if n["kind"] in ("decision", "external", "tracker", "milestone"):
-                tags = "milestone"
-            else:
-                tags = "crit" if key in highlighted else ("active" if n["status"] == "in_progress" else "")
-            prefix = f"{tags}, " if tags else ""
-            out.append(f"  {label} :{prefix}{_mid(key)}, {begin}, {length}d")
-    return out
-
-
-def render_markdown(graph: dict[str, Any], start: date | None = None) -> str:
+def render_markdown(graph: dict[str, Any]) -> str:
     nodes: dict[str, dict[str, Any]] = graph["nodes"]
     areas: dict[str, str] = graph.get("areas") or {}
     layer = layers(graph)
     out = [
         "# FAST-HEP roadmap",
         "",
-        "Generated from `graph.yaml` by `scripts/dev/roadmap.py`: edit the data, never this file.",
+        "Generated from `roadmap.yaml` by `scripts/dev/roadmap.py` (`pixi run roadmap-write`): edit the data, never this file.",
         f"{len(nodes)} nodes. Hard dependencies block; soft ones only order. "
         "Chip nodes are external: shown for what FAST-HEP items wait on or feed.",
         "",
@@ -327,14 +258,6 @@ def render_markdown(graph: dict[str, Any], start: date | None = None) -> str:
     path = critical_path(graph)
     out += ["", "## Longest chain of hard dependencies", "", " → ".join(f"`{k}`" for k in path), ""]
 
-    out += ["## Order over time", "",
-            "Bars start after everything an item waits on (hard or soft) and last by size (S 1 week, M 2, L 4, XL 8 "
-            "unless `effort_days` says otherwise). This is an order, not a forecast: capacity is unlimited, decisions "
-            "and chip work are zero-length markers, high-priority work and what it needs first is highlighted.", "",
-            "```mermaid"]
-    out += render_gantt(graph, start or date.today())
-    out += ["```", ""]
-
     staged = [(k, n) for k, n in nodes.items() if n.get("stages")]
     for key, n in staged:
         out += [f"## Stages of `{key}`", "", f"{n['title']}. Collapsed to one node in the graph above.", ""]
@@ -352,30 +275,64 @@ def render_markdown(graph: dict[str, Any], start: date | None = None) -> str:
     return "\n".join(out)
 
 
+def coverage(graph: dict[str, Any], tasks_dir: Path) -> list[str]:
+    """Task folders and mirrored open issues that no node accounts for.
+
+    A task folder counts when a node lists it (or a path inside it) under ``sources``, or the graph lists it under
+    ``not_in_graph``. A mirrored issue (``issues/github-<repo>-<n>-*.md``) counts when a node has its URL.
+    """
+    nodes: dict[str, dict[str, Any]] = graph["nodes"]
+    sourced = {str(src).split("/")[0] for n in nodes.values() for src in n.get("sources") or []}
+    sourced |= set(graph.get("not_in_graph") or [])
+    issues = set()
+    for n in nodes.values():
+        for url in n.get("issue") or []:
+            parts = url.rstrip("/").split("/")
+            issues.add((parts[-3], parts[-1]))
+    errors: list[str] = []
+    for folder in sorted(p.name for p in tasks_dir.iterdir() if p.is_dir() and TASK_FOLDER.match(p.name)):
+        if folder not in sourced:
+            errors.append(f"task folder {folder} has no node: add it to the sources of a node, or list it under not_in_graph")
+    mirror = tasks_dir / "issues"
+    if mirror.is_dir():
+        for path in sorted(mirror.glob("github-*.md")):
+            m = ISSUE_FILE.match(path.name)
+            if m and (m["repo"], m["number"]) not in issues:
+                errors.append(f"open issue {m['repo']}#{m['number']} has no node: add it (issue:) to a node")
+    return errors
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--graph", type=Path, default=DEFAULT_GRAPH)
-    parser.add_argument("--check", action="store_true", help="only validate; print problems, exit 1 if any")
-    parser.add_argument("--write", type=Path, metavar="PATH", help="write the generated markdown to PATH")
-    parser.add_argument("--start", type=date.fromisoformat, default=None, metavar="YYYY-MM-DD",
-                        help="first day of the chart (default: today)")
+    parser.add_argument("--tasks-dir", type=Path, default=None,
+                        help="folder checked for tasks and mirrored issues without a node (default: the graph's folder)")
+    parser.add_argument("--check", action="store_true",
+                        help="only validate and check coverage; print problems, exit 1 if any")
+    parser.add_argument("--write", nargs="?", const=True, default=None, type=Path, metavar="PATH",
+                        help="write the generated markdown (default: ROADMAP.md next to the graph)")
     args = parser.parse_args(argv)
 
     graph = load(args.graph)
+    tasks_dir = args.tasks_dir or args.graph.parent
     errors = validate(graph)
+    if not errors and tasks_dir.is_dir():
+        errors = coverage(graph, tasks_dir)
     if errors:
         for error in errors:
             print(f"error: {error}")
         if args.write:
-            raise SystemExit(f"not writing {args.write}: the graph has {len(errors)} problem(s)")
+            raise SystemExit(f"not writing the roadmap: {len(errors)} problem(s)")
         return 1
     if args.check:
         print(f"{args.graph}: {len(graph['nodes'])} nodes, no problems")
         return 0
-    text = render_markdown(graph, start=args.start)
+    text = render_markdown(graph)
     if args.write:
-        args.write.write_text(text, encoding="utf-8")
-        print(f"wrote {args.write}")
+        out = args.graph.parent / "ROADMAP.md" if args.write is True else args.write
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+        print(f"wrote {out}")
     else:
         print(text)
     return 0

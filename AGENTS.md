@@ -192,6 +192,34 @@ Bookkeeping:
 - `tasks/push-manifest.yaml` lists the FAST-HEP branches `push-branches` shows and pushes.
 - Proposed pixi tasks and agent skills are specified in `tasks/2026-10-21-dev-tooling-review/`.
 
+## Roadmap
+
+`tasks/roadmap.yaml` is the one graph of planned work: nodes with area, size, priority, hard and soft
+dependencies, sources and issue URLs. `tasks/ROADMAP.md` is generated from it (ready now, what unblocks
+high-priority work, ordered layers) and is read-only. Both are local, like the rest of `tasks/`.
+
+- **Placing work.** Before creating a task folder, a task note or an issue, read `tasks/ROADMAP.md` and
+  add or update its node in `tasks/roadmap.yaml`: `depends_on` for what must come first,
+  `soft_depends_on` for what is better first, `sources` for the folder, `issue` for the URL. Extend an
+  existing node rather than adding a duplicate. Then run `pixi run --environment scripts roadmap-check`
+  (it fails on a cycle, an unknown id, and any task folder or mirrored open issue without a node) and
+  `roadmap-write`. Edit the graph, never `ROADMAP.md`.
+- **Finishing work.** When an issue closes or its work ships, set the node `done` or list it under
+  `retired`, then regenerate.
+- **Mapping to the project** (https://github.com/orgs/FAST-HEP/projects/3: Monthly and Quarterly
+  roadmap views, grouped by Team). Only when explicitly requested, like every project field. Read the
+  fields and the Quarter and Iteration periods from the project each time (`gh project field-list`,
+  GraphQL `ProjectV2IterationField`); never store ids. Propose a table, wait for approval, then edit:
+  - Priority: high is P1, normal P2, low P3; P0 only if the maintainer names the item urgent. A hard
+    prerequisite of a high-priority item inherits it (the "Ready now" table shows this).
+  - Scope: S is Small, M Medium, L and XL Large.
+  - Quarter: the earliest one in which the item can start, never earlier than the latest Quarter of its
+    hard prerequisites; begin with "Ready now", high priority first; soft dependencies only break ties.
+    There is no capacity model: ask how much fits in a quarter before filling one.
+  - Iteration (14-day periods) and Start or Target date only if asked; changing the periods changes the
+    project's configuration and is the maintainer's.
+  - Team and Difficulty are not derived (Team is set by hand, not by repository). New items start in Backlog.
+
 ## Release And Scripts
 
 Workspace scripts are catalogued in `docs/scripts.md`. Do not run destructive,

@@ -132,10 +132,10 @@ clean = { depends-on = ["clean-pycache", "clean-caches"] }
 # Mirror open issues of the FAST-HEP roadmap project (GitHub) into tasks/issues/ (read-only remote).
 tasks-sync = "python scripts/dev/tasks_sync.py --prune"
 tasks-sync-dry = "python scripts/dev/tasks_sync.py --dry-run --prune"
-# Roadmap graph (tasks/<date>-roadmap/graph.yaml): validate it, print the ordered roadmap, or write roadmap.md
+# Roadmap (source tasks/roadmap.yaml, generated tasks/ROADMAP.md): validate and check coverage, print, or write
 roadmap-check = "python scripts/dev/roadmap.py --check"
 roadmap = "python scripts/dev/roadmap.py"
-roadmap-write = "python scripts/dev/roadmap.py --write tasks/2026-11-04-roadmap/roadmap.md"
+roadmap-write = "python scripts/dev/roadmap.py --write"
 # Dependabot has no inheritance: copy the template of dot-github (FAST-HEP/.github) into every package.
 sync-dependabot-dry = "python scripts/dev/sync_dependabot.py"
 sync-dependabot = "python scripts/dev/sync_dependabot.py --write"
