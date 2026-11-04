@@ -213,11 +213,13 @@ on their own.
    and `Quarter` are set by the rules below. `Status` is Backlog.
 2. **Implementation plan exists:** `Status` becomes Ready.
 3. **Picked up** (a branch or worktree is started): `Status` becomes In progress.
-4. **Done and the PR merged:** `Status` becomes Done.
+4. **PR opened** (only after the user has pushed): `Status` becomes Review.
+5. **PR merged:** `Status` becomes Done.
 
-`Blocked` and `Review` are not part of this rule. Keep the node's `status` in `tasks/roadmap.yaml` in step
-(Backlog and Ready are `open`, In progress is `in_progress`, Done is `done`), and mark finished work `done` or
-`retired`. Add an issue to the project with `gh project item-add 3 --owner FAST-HEP --url <issue-url>`; read
+`Blocked` is set while a hard prerequisite (`depends_on` in the graph) is not done and stops the work; when it
+is done, restore the status the task had. Keep the node's `status` in `tasks/roadmap.yaml` in step (Backlog and
+Ready are `open`; In progress and Review are `in_progress`; Blocked is `blocked`; Done is `done`), and mark
+finished work `done` or `retired`. Add an issue to the project with `gh project item-add 3 --owner FAST-HEP --url <issue-url>`; read
 item IDs from `gh project item-list 3 --owner FAST-HEP --format json`; set a field with
 `gh project item-edit --id <item> --project-id <project> --field-id <field> --single-select-option-id <option>`
 (`--iteration-id <period>` for `Quarter`, `--clear` to empty a field).
@@ -232,7 +234,7 @@ change.
 | Project | `PVT_kwDOAhvQf84BgQFw` |
 | `Status` field | `PVTSSF_lADOAhvQf84BgQFwzhadIhM` |
 | Backlog, Ready, In progress, Done | `f75ad846`, `62b83da8`, `47fc9ee4`, `98236657` |
-| Blocked, Review (not used by the rule) | `5a427125`, `a583dab9` |
+| Blocked, Review | `5a427125`, `a583dab9` |
 | `Priority` field | `PVTSSF_lADOAhvQf84BgQFwzhiQW6Y` |
 | P0, P1, P2, P3 | `e79d709d`, `e6736271`, `18904d86`, `37d2f582` |
 | `Scope` field | `PVTSSF_lADOAhvQf84BgQFwzhiQW6g` |
