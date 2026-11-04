@@ -121,9 +121,9 @@ issues, PRs, tags, and CI state. Agents should normally use the authenticated
 ## GitHub And PR Coordination
 
 Use GitHub CLI for issue and PR administration when automation is needed (on lxplus `gh` is not
-installed: use the REST and GraphQL APIs with a token from the file the user names for the session). Query
-current project fields and option IDs before changing project metadata; do not
-store or assume IDs.
+installed: use the REST and GraphQL APIs with a token from the file the user names for the session). The IDs
+of the project, `Status`, `Priority`, `Scope` and `Quarter` are recorded under "Roadmap" below; query any
+other field or option before changing it, and never assume an ID that is not recorded.
 
 The FAST-HEP roadmap is:
 
@@ -132,9 +132,9 @@ Owner: FAST-HEP
 Project: 3
 ```
 
-Use existing project fields such as `Status`, `Priority`, `Difficulty`,
-`Scope`, `Iteration`, and `Quarter` only when explicitly requested. Do not
-create labels, assign people, merge PRs, retarget branches, or rebase stacks
+The task lifecycle under "Roadmap" is the standing request to set `Status`, `Priority`, `Scope` and
+`Quarter`. Use the other fields (`Difficulty`, `Team`, `Iteration`, `Start date`, `Target date`) only when
+explicitly requested. Do not create labels, assign people, merge PRs, retarget branches, or rebase stacks
 unless the user asks.
 
 For stacked PRs:
@@ -198,29 +198,64 @@ Bookkeeping:
 dependencies, sources and issue URLs. `tasks/ROADMAP.md` is generated from it (ready now, what unblocks
 high-priority work, ordered layers) and is read-only. Both are local, like the rest of `tasks/`.
 
-- **Placing work.** Before creating a task folder, a task note or an issue, read `tasks/ROADMAP.md` and
-  add or update its node in `tasks/roadmap.yaml`: `depends_on` for what must come first,
-  `soft_depends_on` for what is better first, `sources` for the folder, `issue` for the URL. Extend an
-  existing node rather than adding a duplicate. Then run `pixi run --environment scripts roadmap-check`
-  (it fails on a cycle, an unknown id, and any task folder or mirrored open issue without a node) and
-  `roadmap-write`. Edit the graph, never `ROADMAP.md`.
-- **Finishing work.** When an issue closes or its work ships, set the node `done` or list it under
-  `retired`, then regenerate.
-- **Mapping to the project** (https://github.com/orgs/FAST-HEP/projects/3: Monthly and Quarterly
-  roadmap views, grouped by Team). Only when explicitly requested, like every project field. Read the
-  fields and the Quarter and Iteration periods from the project each time (`gh project field-list`,
-  GraphQL `ProjectV2IterationField`); never store ids. Propose a table, wait for approval, then edit:
-  - Priority: high is P1, normal P2, low P3; P0 only if the maintainer names the item urgent. A hard
-    prerequisite of a high-priority item inherits it (the "Ready now" table shows this).
-  - Scope: S is Small, M Medium, L and XL Large.
-  - Quarter, the only time field used for now: the earliest one in which the item can start, never earlier
-    than the latest Quarter of its hard prerequisites; begin with "Ready now", high priority first; soft
-    dependencies only break ties. A Quarter is indicative: funding and collaborators are uncertain, so
-    items slip or speed up and the quarters are revisited when that changes. There is no capacity model:
-    ask how much fits in a quarter before filling one.
-  - Iteration, Start date and Target date are not used (dates would be false precision without funding
-    certainty). Do not suggest iteration periods; creating them changes the project's configuration.
-  - Team and Difficulty are not derived (Team is set by hand, not by repository). New items start in Backlog.
+**Placing work.** Before creating a task folder, a task note or an issue, read `tasks/ROADMAP.md` and add or
+update its node in `tasks/roadmap.yaml`: `depends_on` for what must come first, `soft_depends_on` for what is
+better first, `sources` for the folder, `issue` for the URL. Extend an existing node rather than adding a
+duplicate. Then run `pixi run --environment scripts roadmap-check` (it fails on a cycle, an unknown id, and any
+task folder or mirrored open issue without a node) and `roadmap-write`. Edit the graph, never `ROADMAP.md`.
+
+**Task lifecycle.** The issue is the source of truth for a task, and its project fields are kept current at
+each step. Agents do this without being asked and report what they set. They still never merge, push or close
+on their own.
+
+1. **Designed** (for example after the grilling skill): there is an up-to-date issue, created in the owning
+   repository and added to project 3 if it did not exist. Its body matches the design, and `Priority`, `Scope`
+   and `Quarter` are set by the rules below. `Status` is Backlog.
+2. **Implementation plan exists:** `Status` becomes Ready.
+3. **Picked up** (a branch or worktree is started): `Status` becomes In progress.
+4. **Done and the PR merged:** `Status` becomes Done.
+
+`Blocked` and `Review` are not part of this rule. Keep the node's `status` in `tasks/roadmap.yaml` in step
+(Backlog and Ready are `open`, In progress is `in_progress`, Done is `done`), and mark finished work `done` or
+`retired`. Add an issue to the project with `gh project item-add 3 --owner FAST-HEP --url <issue-url>`; read
+item IDs from `gh project item-list 3 --owner FAST-HEP --format json`; set a field with
+`gh project item-edit --id <item> --project-id <project> --field-id <field> --single-select-option-id <option>`
+(`--iteration-id <period>` for `Quarter`, `--clear` to empty a field).
+
+**Project 3 IDs** (https://github.com/orgs/FAST-HEP/projects/3, Monthly and Quarterly roadmap views, grouped
+by Team). Check them with `gh project field-list 3 --owner FAST-HEP --format json`; the Quarter periods are
+under `ProjectV2IterationField.configuration` in GraphQL. If anything differs, fix this table in the same
+change.
+
+| What | ID |
+|---|---|
+| Project | `PVT_kwDOAhvQf84BgQFw` |
+| `Status` field | `PVTSSF_lADOAhvQf84BgQFwzhadIhM` |
+| Backlog, Ready, In progress, Done | `f75ad846`, `62b83da8`, `47fc9ee4`, `98236657` |
+| Blocked, Review (not used by the rule) | `5a427125`, `a583dab9` |
+| `Priority` field | `PVTSSF_lADOAhvQf84BgQFwzhiQW6Y` |
+| P0, P1, P2, P3 | `e79d709d`, `e6736271`, `18904d86`, `37d2f582` |
+| `Scope` field | `PVTSSF_lADOAhvQf84BgQFwzhiQW6g` |
+| Small, Medium, Large | `f54fc874`, `92449286`, `45adc75a` |
+| `Quarter` field | `PVTIF_lADOAhvQf84BgQFwzhadJDs` |
+| Quarter 1 (ends 2026-11-10), Quarter 2 (2026-11-11 to 2027-02-08), Quarter 3 (2027-02-09 to 2027-05-09) | `5f6bfd38`, `b64ce631`, `a0844f8e` |
+
+**Setting the fields.** Derive them from the node, and never overwrite a value the maintainer already set.
+
+- `Priority`: high is P1, normal P2, low P3; P0 only if the maintainer names the item urgent. A hard
+  prerequisite of a high-priority item inherits P1 (the "Ready now" table shows this).
+- `Scope`: S is Small, M Medium, L and XL Large.
+- `Quarter`, the only time field used: capacity is 35 effort units per quarter (S 1, M 2, L 4, XL 8). Place an
+  item in the earliest quarter with room that is not earlier than the latest Quarter of its hard
+  prerequisites; fill in order (high priority and prerequisites first, then earlier layers, smaller first;
+  soft dependencies only break ties). Leave it empty when no later period exists yet, when the item is
+  deferred, or when it is a backlog tracker. Do not re-plan quarters already set; if a new item overfills one,
+  say so. A Quarter is indicative: funding and collaborators are uncertain, so items slip or speed up and the
+  quarters are revisited when that changes. Moving an existing value, or re-planning many at once, needs a
+  proposed table and the maintainer's approval first.
+- `Iteration`, `Start date` and `Target date` are not used (dates would be false precision without funding
+  certainty); do not suggest iteration periods. `Team` and `Difficulty` are not derived (Team is set by hand,
+  not by repository).
 
 ## Release And Scripts
 
