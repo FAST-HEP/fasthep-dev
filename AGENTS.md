@@ -219,8 +219,9 @@ on their own.
 `Blocked` is set while a hard prerequisite (`depends_on` in the graph) is not done and stops the work; when it
 is done, restore the status the task had. Keep the node's `status` in `tasks/roadmap.yaml` in step (Backlog and
 Ready are `open`; In progress and Review are `in_progress`; Blocked is `blocked`; Done is `done`), and mark
-finished work `done` or `retired`. Add an issue to the project with `gh project item-add 3 --owner FAST-HEP --url <issue-url>`; read
-item IDs from `gh project item-list 3 --owner FAST-HEP --format json`; set a field with
+finished work `done` or `retired`. Add an issue to the project with `gh project item-add 3 --owner FAST-HEP --url <issue-url> --format json`
+(the output holds the new item's ID; for an existing item read it from
+`gh project item-list 3 --owner FAST-HEP --format json`); set a field with
 `gh project item-edit --id <item> --project-id <project> --field-id <field> --single-select-option-id <option>`
 (`--iteration-id <period>` for `Quarter`, `--clear` to empty a field).
 
