@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +21,8 @@ import yaml
 KINDS = {"work", "epic", "decision", "milestone", "external", "tracker"}
 STATUSES = {"open", "in_progress", "blocked", "deferred", "done"}
 PRIORITIES = {"high", "normal", "low"}
-SIZES = {"S", "M", "L"}
+SIZES = {"S", "M", "L", "XL"}
+EFFORT_DAYS = {"S": 7, "M": 14, "L": 28, "XL": 56}
 PRIORITY_ORDER = {"high": 0, "normal": 1, "low": 2}
 DEFAULT_GRAPH = Path("tasks/2026-11-04-roadmap/graph.yaml")
 
@@ -194,18 +196,11 @@ def _mid(key: str) -> str:
     return key.replace("-", "_")
 
 
-def _label(title: str, limit: int = 62) -> str:
-    text = title if len(title) <= limit else title[: limit - 1] + "…"
-    return text.replace('"', "#quot;").replace("[", "(").replace("]", ")")
-
-
-def _shape(kind: str, label: str) -> str:
-    return {
-        "decision": '{{"%s"}}',
-        "epic": '[["%s"]]',
-        "milestone": '(["%s"])',
-        "external": '("%s")',
-    }.get(kind, '["%s"]') % label
+def _gantt_label(title: str, limit: int = 56) -> str:
+    """Gantt task titles end at the first colon; ';', '#' and brackets also break the parser."""
+    text = title.replace(":", " -").replace(";", ",").replace("#", "").replace("[", "(").replace("]", ")")
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 def _issue_cell(node: dict[str, Any]) -> str:
@@ -216,7 +211,67 @@ def _issue_cell(node: dict[str, Any]) -> str:
     return ", ".join(links) if links else "none"
 
 
-def render_markdown(graph: dict[str, Any]) -> str:
+def schedule(graph: dict[str, Any]) -> dict[str, tuple[int, int]]:
+    """(start offset, duration) in days: an item starts when everything it waits on (hard or soft) has ended."""
+    nodes: dict[str, dict[str, Any]] = graph["nodes"]
+    effort = {**EFFORT_DAYS, **(graph.get("effort_days") or {})}
+    memo: dict[str, tuple[int, int]] = {}
+
+    def plan(key: str) -> tuple[int, int]:
+        if key not in memo:
+            n = nodes[key]
+            deps = [d for d in _deps(n) if d in nodes and nodes[d].get("status") != "done"]
+            begin = max((plan(d)[0] + plan(d)[1] for d in deps), default=0)
+            length = 0 if n["kind"] in ("decision", "external", "tracker", "milestone") else effort[n.get("size", "M")]
+            memo[key] = (begin, length)
+        return memo[key]
+
+    return {key: plan(key) for key in nodes}
+
+
+def render_gantt(graph: dict[str, Any], start: date) -> list[str]:
+    """Mermaid gantt: bars last by size and start after everything they wait on (hard or soft).
+
+    Start dates are computed here (see `schedule`) so the chart does not depend on how Mermaid resolves
+    ``after`` references across sections.
+
+    Not a forecast: durations are placeholders from the size, capacity is unlimited, and decisions and
+    external (chip) work are zero-length milestones that only fix the order. High-priority work and its
+    prerequisites are highlighted.
+    """
+    nodes: dict[str, dict[str, Any]] = graph["nodes"]
+    areas: dict[str, str] = graph.get("areas") or {}
+    layer = layers(graph)
+    plan = schedule(graph)
+    highlighted = set(inherited_priority(graph)) | {k for k, n in nodes.items() if n.get("priority") == "high"}
+    out = [
+        "gantt",
+        "  title Roadmap order (sizes as placeholder durations, unlimited capacity, not a forecast)",
+        "  dateFormat YYYY-MM-DD",
+        "  axisFormat %d %b",
+    ]
+    for area, area_title in areas.items():
+        members = sorted((k for k, n in nodes.items() if n["area"] == area), key=lambda k: (layer[k], k))
+        if not members:
+            continue
+        out.append(f"  section {_gantt_label(area_title)}")
+        for key in members:
+            n = nodes[key]
+            label = _gantt_label(n["title"])
+            if n["status"] in ("blocked", "deferred"):
+                label += f" ({n['status']})"
+            offset, length = plan[key]
+            begin = (start + timedelta(days=offset)).isoformat()
+            if n["kind"] in ("decision", "external", "tracker", "milestone"):
+                tags = "milestone"
+            else:
+                tags = "crit" if key in highlighted else ("active" if n["status"] == "in_progress" else "")
+            prefix = f"{tags}, " if tags else ""
+            out.append(f"  {label} :{prefix}{_mid(key)}, {begin}, {length}d")
+    return out
+
+
+def render_markdown(graph: dict[str, Any], start: date | None = None) -> str:
     nodes: dict[str, dict[str, Any]] = graph["nodes"]
     areas: dict[str, str] = graph.get("areas") or {}
     layer = layers(graph)
@@ -224,7 +279,7 @@ def render_markdown(graph: dict[str, Any]) -> str:
         "# FAST-HEP roadmap",
         "",
         "Generated from `graph.yaml` by `scripts/dev/roadmap.py`: edit the data, never this file.",
-        f"{len(nodes)} nodes. Solid arrows are hard dependencies, dashed arrows are ordering (soft). "
+        f"{len(nodes)} nodes. Hard dependencies block; soft ones only order. "
         "Chip nodes are external: shown for what FAST-HEP items wait on or feed.",
         "",
         "## Ready now",
@@ -269,32 +324,12 @@ def render_markdown(graph: dict[str, Any]) -> str:
     path = critical_path(graph)
     out += ["", "## Longest chain of hard dependencies", "", " → ".join(f"`{k}`" for k in path), ""]
 
-    out += ["## Graph", "", "```mermaid", "flowchart TD"]
-    for area, area_title in areas.items():
-        members = [k for k, n in nodes.items() if n["area"] == area]
-        if not members:
-            continue
-        out.append(f'  subgraph {area}["{_label(area_title)}"]')
-        for key in members:
-            n = nodes[key]
-            out.append(f"    {_mid(key)}{_shape(n['kind'], _label(n['title']))}")
-        out.append("  end")
-    for key, n in nodes.items():
-        for dep in n.get("depends_on") or []:
-            if dep in nodes:
-                out.append(f"  {_mid(dep)} --> {_mid(key)}")
-        for dep in n.get("soft_depends_on") or []:
-            if dep in nodes:
-                out.append(f"  {_mid(dep)} -.-> {_mid(key)}")
-    out.append("  classDef external stroke-dasharray: 4 3,fill:#f2f2f2,color:#555")
-    out.append("  classDef decision fill:#fff3cd,stroke:#b8860b")
-    out.append("  classDef high stroke-width:3px")
-    for cls, selector in (("external", lambda n: n["kind"] == "external"),
-                          ("decision", lambda n: n["kind"] == "decision"),
-                          ("high", lambda n: n.get("priority") == "high")):
-        picked = [_mid(k) for k, n in nodes.items() if selector(n)]
-        if picked:
-            out.append(f"  class {','.join(picked)} {cls}")
+    out += ["## Order over time", "",
+            "Bars start after everything an item waits on (hard or soft) and last by size (S 1 week, M 2, L 4, XL 8 "
+            "unless `effort_days` says otherwise). This is an order, not a forecast: capacity is unlimited, decisions "
+            "and chip work are zero-length markers, high-priority work and what it needs first is highlighted.", "",
+            "```mermaid"]
+    out += render_gantt(graph, start or date.today())
     out += ["```", ""]
 
     staged = [(k, n) for k, n in nodes.items() if n.get("stages")]
@@ -319,6 +354,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--graph", type=Path, default=DEFAULT_GRAPH)
     parser.add_argument("--check", action="store_true", help="only validate; print problems, exit 1 if any")
     parser.add_argument("--write", type=Path, metavar="PATH", help="write the generated markdown to PATH")
+    parser.add_argument("--start", type=date.fromisoformat, default=None, metavar="YYYY-MM-DD",
+                        help="first day of the chart (default: today)")
     args = parser.parse_args(argv)
 
     graph = load(args.graph)
@@ -332,7 +369,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         print(f"{args.graph}: {len(graph['nodes'])} nodes, no problems")
         return 0
-    text = render_markdown(graph)
+    text = render_markdown(graph, start=args.start)
     if args.write:
         args.write.write_text(text, encoding="utf-8")
         print(f"wrote {args.write}")

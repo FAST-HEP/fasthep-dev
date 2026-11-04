@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from scripts.dev import roadmap
@@ -29,7 +31,7 @@ def test_unknown_dependency_and_unknown_area_are_errors() -> None:
 
 
 def test_invalid_enum_values_are_errors() -> None:
-    g = _graph(a=_node(status="soonish", size="XL"))
+    g = _graph(a=_node(status="soonish", size="HUGE"))
 
     errors = roadmap.validate(g)
 
@@ -87,22 +89,108 @@ def test_critical_path_is_the_longest_chain() -> None:
     assert roadmap.critical_path(g) == ["a", "b", "c"]
 
 
-def test_markdown_has_a_subgraph_per_area_dashed_soft_edges_and_the_stage_list() -> None:
+START = date(2026, 11, 4)
+
+
+def _gantt(graph) -> str:
+    text = roadmap.render_markdown(graph, start=START)
+    return text.split("```mermaid")[1].split("```")[0]
+
+
+def test_markdown_has_a_gantt_with_a_section_per_area_and_the_stage_list() -> None:
     g = _graph(
-        a=_node(title='Quote "this"'),
+        a=_node(),
         b=_node(area="cli", depends_on=["a"]),
-        c=_node(soft_depends_on=["b"], stages=["S0 first", "S1 second"], issue=["https://x/1"]),
+        c=_node(stages=["S0 first", "S1 second"]),
     )
 
-    text = roadmap.render_markdown(g)
+    text = roadmap.render_markdown(g, start=START)
 
-    assert "```mermaid" in text
-    assert 'subgraph flow["Flow"]' in text and 'subgraph cli["CLI"]' in text
-    assert "a --> b" in text
-    assert "b -.-> c" in text
-    diagram = text.split("```mermaid")[1].split("```")[0]
-    assert 'Quote "this"' not in diagram  # quotes in titles are escaped for Mermaid
+    assert "flowchart" not in text
+    gantt = _gantt(g)
+    assert gantt.lstrip().startswith("gantt")
+    assert "dateFormat YYYY-MM-DD" in gantt
+    assert "section Flow" in gantt and "section CLI" in gantt
     assert "S0 first" in text and "S1 second" in text
+
+
+def test_schedule_starts_each_item_when_everything_it_waits_on_has_ended() -> None:
+    g = _graph(
+        a=_node(size="S"),
+        b=_node(size="L", depends_on=["a"]),
+        c=_node(size="M", soft_depends_on=["b"]),
+        d=_node(kind="decision"),
+        e=_node(depends_on=["d", "a"], size="S"),
+    )
+
+    plan = roadmap.schedule(g)
+
+    assert plan["a"] == (0, 7)
+    assert plan["b"] == (7, 28)
+    assert plan["c"] == (35, 14)
+    assert plan["d"] == (0, 0)  # a decision is a zero-length marker
+    assert plan["e"] == (7, 7)
+
+
+def test_gantt_uses_absolute_dates_not_after_references() -> None:
+    g = _graph(a=_node(size="S"), b=_node(size="L", depends_on=["a"]), c=_node(size="M", soft_depends_on=["b"]))
+
+    gantt = _gantt(g)
+
+    assert "a, 2026-11-04, 7d" in gantt
+    assert "b, 2026-11-11, 28d" in gantt
+    assert "c, 2026-12-09, 14d" in gantt
+    assert "after" not in gantt
+
+
+def test_gantt_highlights_high_priority_work_and_its_prerequisites_and_marks_in_progress_as_active() -> None:
+    g = _graph(
+        a=_node(),
+        b=_node(depends_on=["a"], priority="high"),
+        z=_node(status="in_progress"),
+        long1=_node(),
+        long2=_node(depends_on=["long1"]),
+        long3=_node(depends_on=["long2"]),
+    )
+
+    gantt = _gantt(g)
+
+    assert "crit, a," in gantt and "crit, b," in gantt
+    assert "active, z," in gantt
+    assert "crit, long" not in gantt  # the longest chain is not what is highlighted
+
+
+def test_gantt_shows_decisions_and_external_work_as_milestones_and_flags_blocked_work() -> None:
+    g = _graph(
+        d=_node(kind="decision", title="Pick one"),
+        x=_node(area="chip", kind="external", title="Chip thing"),
+        w=_node(status="blocked", depends_on=["d"], title="Needs the decision"),
+    )
+
+    gantt = _gantt(g)
+
+    assert "milestone, d, 2026-11-04, 0d" in gantt
+    assert "milestone, x, 2026-11-04, 0d" in gantt
+    assert "Needs the decision (blocked) :" in gantt
+
+
+def test_gantt_labels_cannot_break_the_syntax() -> None:
+    g = _graph(a=_node(title="Foo: bar; baz #1 [x]"))
+
+    gantt = _gantt(g)
+
+    line = [line for line in gantt.split("\n") if " :a," in line or " :crit, a," in line][0]
+    label = line.split(" :")[0]
+    assert label.strip() == "Foo - bar, baz 1 (x)"
+    assert ":" not in label and ";" not in label and "#" not in label and "[" not in label
+
+
+def test_effort_days_can_be_overridden_and_xl_is_a_size() -> None:
+    g = _graph(a=_node(size="XL"))
+    g["effort_days"] = {"XL": 70}
+
+    assert roadmap.validate(g) == []
+    assert "a, 2026-11-04, 70d" in _gantt(g)
 
 
 def test_markdown_lists_work_without_an_issue_and_the_ready_nodes() -> None:
