@@ -130,8 +130,8 @@ clean-ai = "rm -rf .ai"
 clean = { depends-on = ["clean-pycache", "clean-caches"] }
 
 # Mirror open issues of the FAST-HEP roadmap project (GitHub) into tasks/issues/ (read-only remote).
-tasks-sync = "python scripts/dev/tasks_sync.py"
-tasks-sync-dry = "python scripts/dev/tasks_sync.py --dry-run"
+tasks-sync = "python scripts/dev/tasks_sync.py --prune"
+tasks-sync-dry = "python scripts/dev/tasks_sync.py --dry-run --prune"
 # Dependabot has no inheritance: copy the template of dot-github (FAST-HEP/.github) into every package.
 sync-dependabot-dry = "python scripts/dev/sync_dependabot.py"
 sync-dependabot = "python scripts/dev/sync_dependabot.py --write"
