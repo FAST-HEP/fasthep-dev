@@ -267,7 +267,7 @@ def render_markdown(graph: dict[str, Any]) -> str:
         out.append("")
 
     no_issue = [k for k, n in nodes.items() if n["kind"] in ("work", "epic") and not n.get("issue") and n["status"] != "done"]
-    out += ["## Without an issue", "", "Real work that should get an issue in its owning repository and a place on roadmap project 3.", ""]
+    out += ["## Without an issue", "", "Seeds and other work with no issue yet. Each goes through the grilling skill first; the issue is then written from the grilled design, in its owning repository and on roadmap project 3.", ""]
     out += [f"- `{k}` ({nodes[k]['area']})" for k in no_issue]
     retired = graph.get("retired")
     if retired:

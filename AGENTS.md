@@ -214,20 +214,23 @@ high-priority work, ordered layers) and is read-only. Both are local, like the r
 **Placing work.** Before creating a task folder, a task note or an issue, read `tasks/ROADMAP.md` and add or
 update its node in `tasks/roadmap.yaml`: `depends_on` for what must come first, `soft_depends_on` for what is
 better first, `sources` for the folder, `issue` for the URL. Extend an existing node rather than adding a
-duplicate. Then run `pixi run --environment scripts roadmap-check` (it fails on a cycle, an unknown id, and any
+duplicate. A seed gets its note and its node now and its issue after the grilling (see the lifecycle). Then run `pixi run --environment scripts roadmap-check` (it fails on a cycle, an unknown id, and any
 task folder or mirrored open issue without a node) and `roadmap-write`. Edit the graph, never `ROADMAP.md`.
 
 **Task lifecycle.** The issue is the source of truth for a task, and its project fields are kept current at
 each step. Agents do this without being asked and report what they set. They still never merge, push or close
 on their own.
 
-1. **Designed** (for example after the grilling skill): there is an up-to-date issue, created in the owning
-   repository and added to project 3 if it did not exist. Its body matches the design, and `Priority`, `Scope`
-   and `Quarter` are set by the rules below. `Status` is Backlog.
-2. **Implementation plan exists:** `Status` becomes Ready.
-3. **Picked up** (a branch or worktree is started): `Status` becomes In progress.
-4. **PR opened** (only after the user has pushed): `Status` becomes Review.
-5. **PR merged:** `Status` becomes Done.
+1. **Seed:** an idea or a note under `tasks/`. It has a node in the graph (the coverage check requires it) but
+   no issue yet. Run it through the grilling skill ("grill-me") first; a seed is not summarised as an issue
+   before that.
+2. **Grilled:** now there is an up-to-date issue, created in the owning repository and added to project 3. It
+   summarises the grilled design, and `Priority`, `Scope` and `Quarter` are set by the rules below. `Status`
+   is Backlog. When the design changes, edit the issue.
+3. **Implementation plan exists:** `Status` becomes Ready.
+4. **Picked up** (a branch or worktree is started): `Status` becomes In progress.
+5. **PR opened** (only after the user has pushed): `Status` becomes Review.
+6. **PR merged:** `Status` becomes Done.
 
 `Blocked` is set while a hard prerequisite (`depends_on` in the graph) is not done and stops the work; when it
 is done, restore the status the task had. Keep the node's `status` in `tasks/roadmap.yaml` in step (Backlog and
