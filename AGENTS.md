@@ -241,6 +241,23 @@ finished work `done` or `retired`. Add an issue to the project with `gh project 
 `gh project item-edit --id <item> --project-id <project> --field-id <field> --single-select-option-id <option>`
 (`--iteration-id <period>` for `Quarter`, `--clear` to empty a field).
 
+**Bug reports, and issues filed by others.** The issue may predate any seed. The work still goes through the
+same gates, in this order, and everything new is appended to the issue as a comment:
+
+1. **Reproducibility check.** Does the issue say how to reproduce it: steps or a minimal example, versions,
+   expected and actual behaviour? If anything is missing, stop at a human gate and ask the maintainer what
+   to do next (ask the reporter, investigate, close). Do not decide that yourself.
+2. **Fix plan**, then the grilling skill ("grill-me"; bug reports get it too), then the implementation plan
+   (`Status` Ready), then the implementation (lifecycle steps 4 to 6).
+3. **Place it.** Add the issue to project 3 and a node to the graph, with `Priority`, `Scope` and `Quarter`
+   by the rules below, so it follows the same inputs and procedures as work we start ourselves.
+
+**Never overwrite another user's text.** Before editing an issue or a comment, check its author
+(`gh issue view <n> --json author`; agents act as the account `gh api user --jq .login` returns). If it is
+someone else's, do not edit or delete their issue body or their comments: append a comment instead (the
+reproducibility result, the reproduction, the short-shape summary, decisions). Project fields and the graph
+node are not their text and are fine to set.
+
 **Project 3 IDs** (https://github.com/orgs/FAST-HEP/projects/3, Monthly and Quarterly roadmap views, grouped
 by Team). Check them with `gh project field-list 3 --owner FAST-HEP --format json`; the Quarter periods are
 under `ProjectV2IterationField.configuration` in GraphQL. If anything differs, fix this table in the same
