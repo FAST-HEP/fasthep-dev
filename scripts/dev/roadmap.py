@@ -4,7 +4,8 @@
 The data lives in ``tasks/<date>-roadmap/graph.yaml`` (the source of truth); this tool never edits it.
 Read-only by default: it prints the generated markdown. ``--check`` only validates (cycles, unknown ids,
 bad values, a done item with an open dependency) and checks coverage (a task folder or a mirrored open issue
-that no node accounts for), exiting non-zero on any problem. ``--write [PATH]`` writes the generated markdown
+that no node accounts for), exiting non-zero on any problem; it also warns (never fails) about new task folders that
+break the naming convention. ``--write [PATH]`` writes the generated markdown
 (default ``ROADMAP.md`` next to the graph), and refuses to if there is any problem. FAST-HEP only: chip (``hinv/``) appears only
 as external nodes in the data and is never read.
 """
@@ -26,6 +27,7 @@ SIZES = {"S", "M", "L", "XL"}
 PRIORITY_ORDER = {"high": 0, "normal": 1, "low": 2}
 DEFAULT_GRAPH = Path("tasks/roadmap.yaml")
 TASK_FOLDER = re.compile(r"^\d{4}-\d{2}-\d{2}-")
+NEW_TASK_NAME = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-(?P<target>[a-z0-9]+(?:\+[a-z0-9]+)*)-(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)$")
 ISSUE_FILE = re.compile(r"^github-(?P<repo>.+?)-(?P<number>\d+)-")
 
 
@@ -302,6 +304,51 @@ def coverage(graph: dict[str, Any], tasks_dir: Path) -> list[str]:
     return errors
 
 
+def naming_warnings(graph: dict[str, Any], tasks_dir: Path) -> list[str]:
+    """One warning per task folder dated on or after ``task_naming.from`` that breaks the naming convention.
+
+    ``YYYY-MM-DD-<target>-<slug>``: the target is one to ``max_named`` of the listed codes joined with ``+`` in
+    alphabetical order, or ``multi`` alone for more; the slug is two to five lowercase words. Older folders keep
+    their names. Warnings only: nothing here fails a check.
+    """
+    rule = graph.get("task_naming")
+    if not rule:
+        return []
+    cutoff = str(rule["from"])
+    targets = set(rule.get("targets") or [])
+    limit = int(rule.get("max_named", 3))
+    warnings: list[str] = []
+    for folder in sorted(p.name for p in tasks_dir.iterdir() if p.is_dir() and TASK_FOLDER.match(p.name)):
+        if folder[:10] < cutoff:
+            continue
+        m = NEW_TASK_NAME.match(folder)
+        if not m:
+            warnings.append(f"task folder {folder} does not match YYYY-MM-DD-<target>-<slug> "
+                            "(lowercase letters, digits and hyphens; several targets joined with '+')")
+            continue
+        names = m["target"].split("+")
+        reasons: list[str] = []
+        if "multi" in names:
+            if len(names) > 1:
+                reasons.append("'multi' stands alone")
+        else:
+            unknown = [n for n in names if n not in targets]
+            if unknown:
+                reasons.append(f"unknown target {', '.join(unknown)} (valid: {', '.join(sorted(targets))}, multi)")
+            if len(set(names)) != len(names):
+                reasons.append("a target is repeated")
+            elif names != sorted(names):
+                reasons.append("targets must be in alphabetical order")
+            if len(names) > limit:
+                reasons.append(f"names {len(names)} repositories: more than {limit} should be 'multi'")
+        words = len(m["slug"].split("-"))
+        if not 2 <= words <= 5:
+            reasons.append(f"the slug has {words} word(s), expected 2 to 5")
+        if reasons:
+            warnings.append(f"task folder {folder}: " + "; ".join(reasons))
+    return warnings
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--graph", type=Path, default=DEFAULT_GRAPH)
@@ -315,6 +362,9 @@ def main(argv: list[str] | None = None) -> int:
 
     graph = load(args.graph)
     tasks_dir = args.tasks_dir or args.graph.parent
+    if tasks_dir.is_dir():
+        for warning in naming_warnings(graph, tasks_dir):
+            print(f"warning: {warning}", file=sys.stdout if args.check else sys.stderr)
     errors = validate(graph)
     if not errors and tasks_dir.is_dir():
         errors = coverage(graph, tasks_dir)

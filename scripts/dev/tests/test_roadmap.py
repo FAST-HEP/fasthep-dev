@@ -281,3 +281,85 @@ def test_write_without_a_path_goes_to_roadmap_md_next_to_the_graph(tmp_path) -> 
     assert roadmap.main(["--graph", str(graph), "--write"]) == 0
 
     assert "Ready now" in (tasks / "ROADMAP.md").read_text(encoding="utf-8")
+
+
+NAMING = {
+    "from": "2026-11-05",
+    "targets": ["flow", "cli", "distributed", "docs", "dev", "org", "chip"],
+    "max_named": 3,
+}
+
+
+def _named(tmp_path, *folders):
+    tasks = tmp_path / "tasks"
+    tasks.mkdir(exist_ok=True)
+    for f in folders:
+        (tasks / f).mkdir()
+    g = _graph(a=_node())
+    g["task_naming"] = NAMING
+    return g, tasks
+
+
+def test_new_task_names_that_follow_the_convention_give_no_warnings(tmp_path) -> None:
+    g, tasks = _named(
+        tmp_path,
+        "2026-11-05-flow-site-settings",
+        "2026-11-06-cli+flow-semantic-diff",
+        "2026-11-06-cli+distributed+flow-run-dispatch",
+        "2026-11-07-multi-root-file-comparison",
+        "2026-11-07-org-issue-templates",
+    )
+
+    assert roadmap.naming_warnings(g, tasks) == []
+
+
+def test_folders_before_the_cutoff_are_exempt_whatever_their_name(tmp_path) -> None:
+    g, tasks = _named(tmp_path, "2026-11-04-issue-pr-templates", "2026-10-01-anything-goes")
+
+    assert roadmap.naming_warnings(g, tasks) == []
+
+
+def test_naming_warnings_name_the_folder_and_the_reason(tmp_path) -> None:
+    g, tasks = _named(
+        tmp_path,
+        "2026-11-06-snakemake-export-docs",  # snakemake is not a target
+        "2026-11-06-flow+cli-semantic-diff",  # not alphabetical
+        "2026-11-06-cli+distributed+docs+flow-big-thing",  # four named repos: use multi
+        "2026-11-06-multi+flow-wide-change",  # multi stands alone
+        "2026-11-06-flow-x",  # slug too short
+        "2026-11-06-flow-one-two-three-four-five-six",  # slug too long
+        "2026-11-06-Flow-Upper-Case",
+    )
+
+    warnings = roadmap.naming_warnings(g, tasks)
+
+    assert len(warnings) == 7
+    joined = "\n".join(warnings)
+    for needle in ("snakemake", "alphabetical", "more than 3", "multi", "slug", "2026-11-06-Flow-Upper-Case"):
+        assert needle in joined
+
+
+def test_no_task_naming_in_the_graph_means_no_naming_warnings(tmp_path) -> None:
+    tasks = tmp_path / "tasks"
+    (tasks / "2026-11-06-whatever").mkdir(parents=True)
+
+    assert roadmap.naming_warnings(_graph(a=_node()), tasks) == []
+
+
+def test_check_prints_naming_warnings_but_still_passes(tmp_path, capsys) -> None:
+    tasks = tmp_path / "tasks"
+    (tasks / "issues").mkdir(parents=True)
+    (tasks / "2026-11-06-badname").mkdir()
+    graph = tasks / "roadmap.yaml"
+    graph.write_text(
+        "version: 1\nareas: {flow: Flow}\ntask_naming: {from: '2026-11-05', targets: [flow], max_named: 3}\n"
+        "not_in_graph: [2026-11-06-badname]\n"
+        "nodes:\n  a: {title: t, area: flow, kind: work, status: open}\n",
+        encoding="utf-8",
+    )
+
+    code = roadmap.main(["--graph", str(graph), "--check"])
+
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "warning:" in out and "2026-11-06-badname" in out

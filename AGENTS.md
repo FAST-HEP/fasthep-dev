@@ -163,16 +163,25 @@ Skills that produce tasks, roadmaps, or structured plans (such as `grilling`,
 `mattpocock-skills:grilling`, or similar brainstorming and planning skills)
 must write their output under `tasks/` in this workspace.
 
-Directory naming convention:
+Directory naming convention (tasks created from 2026-11-06; earlier folders keep their names):
 
 ```
-tasks/<YYYY-MM-DD>-<short-slug>/
+tasks/<YYYY-MM-DD>-<target>-<slug>/
 ```
 
 - `YYYY-MM-DD` is the ISO 8601 creation date (today's date when the task is
   first created).
-- `<short-slug>` is a brief lowercase hyphenated label describing the task or
-  session (e.g. `grill-carpenter-api`, `roadmap-v2`, `hinv-migration-plan`).
+- `<target>` is where the work lands, by workspace short name: `flow`, `distributed`, `carpenter`,
+  `curator`, `render`, `cli`, `toolbench`, `workshop`, `fasthep`, plus `docs` (main-docs), `dev` (this
+  workspace), `org` (FAST-HEP/.github) and `chip` (the external analysis). Two or three repositories are
+  joined with `+` in alphabetical order (`cli+flow`); more than three is `multi`, and the roadmap node and
+  the issue list the repositories.
+- `<slug>` is two to five lowercase hyphenated words naming the work. It does not repeat the target. A kind
+  word such as `grill` or `handover` is allowed, not required.
+
+Examples: `2026-11-06-flow-site-settings`, `2026-11-06-cli+flow-semantic-diff`,
+`2026-11-06-multi-root-file-comparison`. `roadmap-check` warns (never fails) about a new folder that breaks
+this; the valid targets are `task_naming` in `tasks/roadmap.yaml`.
 
 Each directory should contain at least one Markdown file summarising the
 output. Additional files (checklists, diagrams, notes) may be added alongside.
