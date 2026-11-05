@@ -137,6 +137,10 @@ The task lifecycle under "Roadmap" is the standing request to set `Status`, `Pri
 explicitly requested. Do not create labels, assign people, merge PRs, retarget branches, or rebase stacks
 unless the user asks.
 
+Write issues in the short shape from `FAST-HEP/.github` `docs/issues.md`: a lead paragraph with one number or
+example, `## What`, `## Done when`, `## Related`, about 200 words visible and the detail in one collapsed
+block. Start from the org default template with `gh issue create --template Task`.
+
 For stacked PRs:
 
 - keep each PR to one coherent change;
