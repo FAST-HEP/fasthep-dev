@@ -141,6 +141,13 @@ Write issues in the short shape from `FAST-HEP/.github` `docs/issues.md`: a lead
 example, `## What`, `## Done when`, `## Related`, about 200 words visible and the detail in one collapsed
 block. Start from the org default template with `gh issue create --template Task`.
 
+Write pull request bodies in the short shape from `FAST-HEP/.github` `docs/pull-requests.md`: Summary with one
+visual, Evidence, Merge Danger and four one-line AI assistance bullets, about 300 words visible and the detail
+in one collapsed block. Link the issue and do not restate it. Fetch the skeleton with
+`gh api repos/FAST-HEP/.github/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .content | base64 -d`, and use
+`gh api -X PATCH repos/<owner>/<repo>/pulls/<n> -F body=@file` to edit an open PR (`gh pr edit` fails on a
+deprecated GraphQL field).
+
 For stacked PRs:
 
 - keep each PR to one coherent change;
