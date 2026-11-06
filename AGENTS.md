@@ -56,6 +56,36 @@ local filesystem references.
 - Do not replace package-local release dependencies with workspace paths unless
   explicitly requested.
 
+## Compatibility While In Alpha
+
+All FAST-HEP packages are alpha. Beta starts when the full analysis integration (CMS Higgs to
+Invisible, `hinv`) is complete; that is still far away.
+
+- Breaking changes are allowed. Do not add deprecation periods, shims or dual formats by default.
+- A breaking change must be motivated and documented: the reason in the issue and the PR, the
+  break in the changelog (commit message, see each package's `AGENTS.md`), and the changed API or
+  file layout in the docs. Say who breaks (workspace consumers) and update them in the same stack.
+- Persisted formats still carry a `schema_version`, and it changes with the break. A removed field
+  is removed, not left behind.
+- Keep a compatibility path only when the issue asks for one, for example because a consumer cannot
+  move in the same stack. Name that consumer and the removal step.
+
+## Worktrees For Implementation
+
+- The submodule checkouts in this workspace stay on the repository's default branch, forwarded to
+  `origin`, and clean. Do not implement in them.
+- Implement each task in its own git worktree under `build/worktrees/<repo>-<slug>`, branched from
+  the default branch, for example
+  `git -C flow worktree add ../build/worktrees/flow-record-paths -b fix/provenance-record-paths origin/main`.
+  A stack of PRs uses one worktree per branch. `build/` is ignored: list ignored files before
+  removing a worktree (human gate below).
+- The `dev` environment's editable installs point at the workspace checkouts, so a worktree's code
+  is not used by default. Put it first on the path:
+  `PYTHONPATH=$PWD/build/worktrees/flow-record-paths/src .pixi/envs/dev/bin/python ...`
+  (checked for `flow`: the import then resolves to the worktree). Verify with
+  `python -c "import hepflow; print(hepflow.__file__)"` before trusting a run. A formal task for
+  running tests, workshop tutorials and examples against a worktree is not defined yet.
+
 ## Scope, Human Gates And Credentials
 
 - **Scope:** scripts and pixi tasks in this workspace are exclusively for FAST-HEP. `hinv` is
