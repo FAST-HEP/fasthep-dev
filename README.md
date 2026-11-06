@@ -101,6 +101,14 @@ pyproject.toml metadata being exactly reproducible.
    carpenter cutflow-merging bug across datasets that only `test-smoke-workshop` caught, by which
    point the affected packages were already tagged, pushed, and published.) Once FAST-HEP reaches
    beta, this check belongs in each package's own CI rather than only here.
+0a. **For a release with a big breaking change, also run a real analysis before tagging.** A change counts
+   as big when it touches a contract shared across packages (bundle or provenance layout, plan, the sink
+   and operation API, artifact locations) or the changelog lists it as breaking. Workshop's smoke suite is
+   small data and cannot show everything; run the CMS Higgs to Invisible analysis (`hinv/chip`, with its
+   own tasks, see `hinv/chip/AGENTS.md`) against this workspace's editable packages and compare with the
+   previous release. The developer runs it (heavy, site specific); workspace scripts do not touch `hinv`.
+   Note the result in the release PR or issue. A change that was already tested this way in its own PR
+   still needs one run on the release candidate.
 1. Review the plan: `pixi run release-plan` (validates topological release order; a failure here
    means `releases.json` itself needs fixing before anything else).
 2. Check repo state: `pixi run release-check` (validates calendar-versioned version numbers and
