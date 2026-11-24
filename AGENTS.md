@@ -79,6 +79,13 @@ Invisible, `hinv`) is complete; that is still far away.
   `git -C flow worktree add ../build/worktrees/flow-record-paths -b fix/provenance-record-paths origin/main`.
   A stack of PRs uses one worktree per branch. `build/` is ignored: list ignored files before
   removing a worktree (human gate below).
+- Do not run `git submodule update`, `sync` or `absorbgitdirs` while worktrees of that submodule
+  exist: they rewrite `core.worktree` in `.git/modules/<repo>/config`, and every `git` command in the
+  linked worktrees then fails with `fatal: cannot chdir to '../../../<repo>'`. Check with
+  `git config --file .git/modules/<repo>/config --get core.worktree`.
+- If it happens, do not edit the shared config. Run the git command with `GIT_WORK_TREE=$PWD` from
+  the worktree (verified for `status`, `add` and `commit`) and tell the user; removing the setting
+  from the shared config is a human step.
 - The `dev` environment's editable installs point at the workspace checkouts, so a worktree's code
   is not used by default. Put it first on the path:
   `PYTHONPATH=$PWD/build/worktrees/flow-record-paths/src .pixi/envs/dev/bin/python ...`
