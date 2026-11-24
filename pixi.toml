@@ -126,6 +126,17 @@ clean-caches = "find . \\( -name dist -o -name '.pytest_cache' -o -name '.ruff_c
 #   pixi run --environment scripts clean-build-execute --older-than 14
 clean-build = "python scripts/dev/clean_build.py"
 clean-build-execute = "python scripts/dev/clean_build.py --execute"
+# Worktrees under build/worktrees: compare each with its upstream and origin/<default>; the default
+# lists after a git fetch. -execute asks "delete? [y/N]" per worktree (dirty or unpushed ones need
+# the typed name); a human gate: needs a terminal, no way to skip it. The branch is kept.
+clean-worktrees = "python scripts/dev/clean_worktrees.py"
+clean-worktrees-execute = "python scripts/dev/clean_worktrees.py --execute"
+# Branches (local and origin alike) that are already merged into the default branch, per FAST-HEP
+# repository; --token-file KEY=value file with GITHUB_TOKEN adds pull request state (squash merges).
+# The default lists and prints the commands; -execute asks per branch (a human gate, no way to skip):
+#   pixi run --environment scripts clean-branches --token-file <file>
+clean-branches = "python scripts/dev/clean_branches.py"
+clean-branches-execute = "python scripts/dev/clean_branches.py --execute"
 clean-ai = "rm -rf .ai"
 clean = { depends-on = ["clean-pycache", "clean-caches"] }
 

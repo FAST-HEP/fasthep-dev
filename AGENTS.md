@@ -99,9 +99,9 @@ Invisible, `hinv`) is complete; that is still far away.
   CMS analysis integration; its scripts and pixi tasks live inside `hinv/chip` (some duplication
   is fine). Workspace tools do not scan, mirror or modify `hinv/`.
 - **Human gates:** every destructive or external-write action (deleting build output or
-  generated mirrors, pushing branches, removing worktrees) needs a typed confirmation on a
+  generated mirrors, pushing branches, deleting branches, removing worktrees) needs a typed confirmation on a
   terminal, is refused without one, and has no flag that skips it. Agents run the dry run, never
-  the executing variant (`clean-build-execute`, `push-branches-execute`, `release-notes-backfill-execute`, `--prune`). Every
+  the executing variant (`clean-build-execute`, `clean-worktrees-execute`, `clean-branches-execute`, `push-branches-execute`, `release-notes-backfill-execute`, `--prune`). Every
   HTCondor submit needs explicit approval.
 - **Review gates:** two human gates, in this order. (1) The push: the user reviews the diff
   locally and pushes, and a push means that review is done; agents commit locally and never push.
