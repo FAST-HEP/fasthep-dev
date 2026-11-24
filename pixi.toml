@@ -131,6 +131,11 @@ clean-build-execute = "python scripts/dev/clean_build.py --execute"
 # the typed name); a human gate: needs a terminal, no way to skip it. The branch is kept.
 clean-worktrees = "python scripts/dev/clean_worktrees.py"
 clean-worktrees-execute = "python scripts/dev/clean_worktrees.py --execute"
+# Detached package snapshots for testing the merged ecosystem in the dev environment.
+snapshot = "python scripts/dev/snapshot.py"
+snapshot-execute = "python scripts/dev/snapshot.py --execute"
+snapshot-env = "python scripts/dev/snapshot.py env"
+snapshot-run = "python scripts/dev/snapshot.py run"
 # Branches (local and origin alike) that are already merged into the default branch, per FAST-HEP
 # repository; --token-file KEY=value file with GITHUB_TOKEN adds pull request state (squash merges).
 # The default lists and prints the commands; -execute asks per branch (a human gate, no way to skip):
