@@ -136,6 +136,8 @@ snapshot = "python scripts/dev/snapshot.py"
 snapshot-execute = "python scripts/dev/snapshot.py --execute"
 snapshot-env = "python scripts/dev/snapshot.py env"
 snapshot-run = "python scripts/dev/snapshot.py run"
+# Public symbols no sibling imports and private names siblings import, over build/review snapshots (read-only).
+api-surface = "python scripts/dev/api_surface.py"
 # Branches (local and origin alike) that are already merged into the default branch, per FAST-HEP
 # repository; --token-file KEY=value file with GITHUB_TOKEN adds pull request state (squash merges).
 # The default lists and prints the commands; -execute asks per branch (a human gate, no way to skip):
