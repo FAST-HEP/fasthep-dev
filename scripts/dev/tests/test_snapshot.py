@@ -193,3 +193,26 @@ def test_run_checks_cwd_and_accepts_pixi_forwarding(workspace, capfd, monkeypatc
     monkeypatch.delenv("PYTHONSAFEPATH", raising=False)
     assert invoke(workspace, "run", "--repo", "flow", "python", "-V") == 1
     assert "hepflow.py resolves outside" in capfd.readouterr().err
+
+
+def test_dest_places_snapshots_and_env_finds_them(workspace, capsys):
+    dest = workspace / "build/review"
+    assert invoke(workspace, "--dest", "build/review", "--execute") == 0
+    assert (dest / "flow/.git").is_file()
+    assert (dest / "fasthep/.git").is_file()
+    assert not (workspace / "build/worktrees").exists()
+    capsys.readouterr()
+    assert invoke(workspace, "env", "--dest", "build/review", "--json") == 0
+    assert str(dest / "flow/src") in json.loads(capsys.readouterr().out)["PYTHONPATH"]
+
+
+@pytest.mark.parametrize("dest", ["build", "elsewhere", "../outside", "build/../x"])
+def test_dest_must_be_below_build(workspace, dest):
+    with pytest.raises(SystemExit):
+        invoke(workspace, "--dest", dest)
+
+
+def test_dest_refuses_non_snapshot_directory(workspace, capsys):
+    (workspace / "build/review/flow").mkdir(parents=True)
+    assert invoke(workspace, "--dest", "build/review", "--execute") == 1
+    assert "not a worktree of flow" in capsys.readouterr().out

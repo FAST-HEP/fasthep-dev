@@ -123,6 +123,7 @@ def write_version_file(snapshot: Path) -> str:
 class Snapshot:
     root: Path
     name: str
+    dest: Path | None = None
     ref: str = "-"
     old: str = ""
     new: str = ""
@@ -135,6 +136,8 @@ class Snapshot:
 
     @property
     def path(self) -> Path:
+        if self.dest is not None:
+            return self.dest / self.name
         return self.root / WORKTREES / f"snapshot-{self.name}"
 
     def row(self) -> tuple[str, ...]:
@@ -261,12 +264,12 @@ def table(items: list[Snapshot]) -> str:
 
 
 def environment(
-    root: Path, repos: list[str], *, require_fresh: bool
+    root: Path, repos: list[str], *, require_fresh: bool, dest: Path | None = None
 ) -> tuple[dict, dict]:
     packages = {}
     paths = []
     for name, module in MODULES.items():
-        item = Snapshot(root, name)
+        item = Snapshot(root, name, dest)
         check_repo(item.repo)
         if name in repos:
             head = existing_head(item)
@@ -299,12 +302,28 @@ def environment(
     return variables, packages
 
 
+def resolve_dest(root: Path, dest: Path | None) -> Path | None:
+    """Return the absolute --dest, which must be a directory below build/."""
+    if dest is None:
+        return None
+    path = (root / dest).resolve()
+    if path == root / "build" or not path.is_relative_to(root / "build"):
+        raise ValueError(f"--dest must be a directory below {root / 'build'}: {dest}")
+    return path
+
+
 def add_selection(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--root", type=Path, default=Path.cwd(), help="workspace root (default: cwd)"
     )
     parser.add_argument(
         "--repo", choices=MODULES, action="append", help="select a package (repeatable)"
+    )
+    parser.add_argument(
+        "--dest",
+        type=Path,
+        help="snapshot directory below build/, one subdirectory per package "
+        "(default: build/worktrees/snapshot-<package>)",
     )
 
 
@@ -329,7 +348,10 @@ def environment_main(mode: str, argv: list[str]) -> int:
     root = args.root.resolve()
     try:
         variables, packages = environment(
-            root, args.repo or list(MODULES), require_fresh=args.require_fresh
+            root,
+            args.repo or list(MODULES),
+            require_fresh=args.require_fresh,
+            dest=resolve_dest(root, args.dest),
         )
         if mode == "env":
             if args.json:
@@ -355,7 +377,7 @@ def environment_main(mode: str, argv: list[str]) -> int:
             )
             os.chdir(cwd)
             os.execvpe(args.command[0], args.command, env)
-    except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
+    except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
         print(f"snapshot {mode}: {error}", file=sys.stderr)
         return 1
     return 0
@@ -385,7 +407,11 @@ def main(argv: list[str] | None = None) -> int:
         overrides[name] = ref
 
     root = args.root.resolve()
-    items = [Snapshot(root, name) for name in MODULES if name in repos]
+    try:
+        dest = resolve_dest(root, args.dest)
+    except ValueError as error:
+        parser.error(str(error))
+    items = [Snapshot(root, name, dest) for name in MODULES if name in repos]
     for item in items:
         try:
             plan(item, overrides.get(item.name), fetch=not args.no_fetch)
