@@ -65,6 +65,12 @@ def check_cost(data: dict) -> tuple[list[str], list[str]]:
         lines.append(f"tokens per finding {tokens // found:,}")
     if scope:
         lines.append(f"tokens per 1000 lines {tokens * 1000 // scope:,}")
+    if not data.get("model"):
+        errors.append("missing model (the model the agents ran on)")
+    else:
+        lines.append(f"model {data['model']}")
+    if share := data.get("usage_share"):
+        lines.append(f"usage share {share}")
     if (budget := data.get("budget_tokens")) and tokens > budget:
         errors.append(f"over budget: {tokens:,} > {budget:,} tokens")
     if data.get("main_session_tokens") is None:

@@ -19,7 +19,7 @@ def run_dir(root: Path, name: str, findings: list[dict], agents: list[dict] | No
     (path / "findings.json").write_text(json.dumps({
         "schema_version": 1, "repo": "flow", "commit": "abc", "mode": "full", "date": "2026-11-27",
         "findings": findings}))
-    cost = {"schema_version": 1, "budget_tokens": 100, "agents": agents or [
+    cost = {"schema_version": 1, "model": "m", "budget_tokens": 100, "agents": agents or [
         {"role": "r", "tokens": 60, "tool_uses": 3, "duration_ms": 1, "findings": 2, "lines_in_scope": 1000}]}
     (path / "cost.json").write_text(json.dumps(cost))
     return path
@@ -63,3 +63,14 @@ def test_diff_new_resolved_persisting_changed(tmp_path, capsys):
     out = json.loads(capsys.readouterr().out)
     assert {k: [f["symbol"] for f in v] for k, v in out.items()} == {
         "new": ["fresh"], "resolved": ["gone"], "persisting": ["keep"], "changed": ["size"]}
+
+
+def test_check_requires_the_model(tmp_path, capsys):
+    path = run_dir(tmp_path, "a", [finding("f")])
+    rf.main(["stamp", str(path / "findings.json")])
+    cost = json.loads((path / "cost.json").read_text())
+    del cost["model"]
+    (path / "cost.json").write_text(json.dumps(cost))
+    capsys.readouterr()
+    assert rf.main(["check", str(path)]) == 1
+    assert "missing model" in capsys.readouterr().out
