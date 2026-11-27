@@ -53,3 +53,9 @@ The numbers come from each subagent's completion notice. The main session's own 
 ## Prior art
 
 CodeChecker's `diff` (new, resolved, unresolved by a report hash), GitHub code scanning's SARIF fingerprints (a stable `ruleId` and consistent paths), and review bots that skip an unchanged commit and review the delta. None covers agent findings with a token cost, so this is a thin layer using their vocabulary. SARIF export is a later option: `id` maps to `partialFingerprints`.
+
+## Staleness and cross-use (multi-repository skill)
+
+- **Stale** (`cross_use.py stale`): the newest `reports/<repo>/*/findings.json` is older than 30 days, more than 20 commits behind the snapshot, or a file listed in its `scope.txt` changed since its commit. No review at all is stale. A stale repository gets a delta run offered, never started.
+- **Cross-use findings** use category `cross-use` and are written to `reports/_cross/<date>/` with the same `findings.json` and `cost.json`; `file` is `<repo>/<path>` and `consumers` names the other repositories.
+- **Candidates before agents:** `cross_use.py duplicates|strings|floors` and `api_surface.py` produce the candidate list; an agent reads only the files a candidate names.

@@ -140,6 +140,8 @@ snapshot-run = "python scripts/dev/snapshot.py run"
 api-surface = "python scripts/dev/api_surface.py"
 # Stamp, check and diff the findings and cost files of a maintainability review run (docs/review-format.md).
 review-findings = "python scripts/dev/review_findings.py"
+# Cross-package checks over build/review: duplicates, strings, floors, stale (docs/review-format.md).
+cross-use = "python scripts/dev/cross_use.py"
 # Branches (local and origin alike) that are already merged into the default branch, per FAST-HEP
 # repository; --token-file KEY=value file with GITHUB_TOKEN adds pull request state (squash merges).
 # The default lists and prints the commands; -execute asks per branch (a human gate, no way to skip):
