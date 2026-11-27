@@ -5,7 +5,7 @@ Nothing here names a package: the repository, its package and its layout come fr
 
 ## Run directory
 
-`reports/<repo>/<YYYY-MM-DD>/` in the durable `reports/` repository:
+`reports/<repo>/<YYYY-MM-DD>/` in the durable `reports/` repository. A run that is not one repository uses `reports/_<name>/<YYYY-MM-DD>/` instead: `_cross` for the multi-repository skill, `_<topic>` (for example `_persistence`) for a feature that spans packages. Its `repo` field is `_<name>`, its `commit` field lists `<repo> <commit>` pairs, and `scope.txt` paths start at the snapshot directory (`flow/src/...`).
 
 | File | Content |
 |---|---|
@@ -36,9 +36,9 @@ An id survives moves and edits around the symbol. Renaming the symbol or moving 
 
 ## cost.json
 
-`{"schema_version": 1, "repo", "commit", "mode", "budget_tokens", "main_session_tokens": null, "agents": [{"role", "tokens", "tool_uses", "duration_ms", "findings", "lines_in_scope"}]}`
+`{"schema_version": 1, "repo", "commit", "mode", "model", "usage_share", "budget_tokens", "main_session_tokens": null, "agents": [{"role", "tokens", "tool_uses", "duration_ms", "findings", "lines_in_scope"}]}`
 
-The numbers come from each subagent's completion notice. The main session's own tokens are not exposed by the harness, so `main_session_tokens` stays `null`. `review_findings.py check` prints tokens per finding and per 1,000 lines and fails on an overrun of `budget_tokens`.
+`model` is the model the agents ran on, set explicitly when they are started and required by `check`; the completion notices do not report it. `usage_share` is optional text, the difference between the human's usage figures before and after the run (for example `5-hour limit +8%, weekly +1%`). The harness does not expose usage, so the skill asks for the figures at the start and the end. Usage differs per model, so compare runs only on the same `model`; the token counts are always recorded. The token numbers come from each subagent's completion notice. The main session's own tokens are not exposed by the harness, so `main_session_tokens` stays `null`. `review_findings.py check` prints tokens per finding and per 1,000 lines and fails on an overrun of `budget_tokens`.
 
 ## Scope
 
